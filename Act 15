@@ -1,0 +1,81 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+class LogAnalyzer
+{
+    public Dictionary<string, int> ErrorCounts { get; } = new Dictionary<string, int>();
+    public Dictionary<string, int> WarningCounts { get; } = new Dictionary<string, int>();
+
+    public void ProcessLog(string line)
+    {
+        string[] parts;
+        
+        if (line.Contains("ERROR:"))
+        {
+            parts = line.Split(new[] {"ERROR:"}, StringSplitOptions.None);
+            if (parts.Length > 1)
+            {
+                string errorCode = parts[1].Trim().Split()[0];
+                IncrementCount(ErrorCounts, errorCode);
+            }
+        }
+        else if (line.Contains("WARN:"))
+        {
+            parts = line.Split(new[] {"WARN:"}, StringSplitOptions.None);
+            if (parts.Length > 1)
+            {
+                string warnCode = parts[1].Trim().Split()[0];
+                IncrementCount(WarningCounts, warnCode);
+            }
+        }
+    }
+
+    private void IncrementCount(Dictionary<string, int> counts, string code)
+    {
+        if (counts.ContainsKey(code))
+            counts[code]++;
+        else
+            counts[code] = 1;
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        Console.WriteLine("LOG ANALYZER");
+        var analyzer = new LogAnalyzer();
+        
+        Console.Write("Number of log lines: ");
+        int lineCount = int.Parse(Console.ReadLine());
+        Console.WriteLine("Enter log lines:");
+        
+        for (int i = 0; i < lineCount; i++)
+        {
+            string line = Console.ReadLine();
+            analyzer.ProcessLog(line);
+        }
+        
+        // Display results
+        Console.WriteLine("\nERROR STATISTICS:");
+        DisplayTopCodes(analyzer.ErrorCounts, 5);
+        
+        Console.WriteLine("\nWARNING STATISTICS:");
+        DisplayTopCodes(analyzer.WarningCounts, 5);
+    }
+
+    static void DisplayTopCodes(Dictionary<string, int> counts, int topN)
+    {
+        if (counts.Count == 0)
+        {
+            Console.WriteLine("None found");
+            return;
+        }
+        
+        foreach (var kvp in counts.OrderByDescending(x => x.Value).Take(topN))
+        {
+            Console.WriteLine($"{kvp.Key}: {kvp.Value} occurrences");
+        }
+    }
+}
