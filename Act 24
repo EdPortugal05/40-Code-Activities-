@@ -1,0 +1,78 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+class SentimentAnalyzer
+{
+    private readonly HashSet<string> _positiveWords;
+    private readonly HashSet<string> _negativeWords;
+
+    public SentimentAnalyzer(IEnumerable<string> positiveWords, IEnumerable<string> negativeWords)
+    {
+        _positiveWords = new HashSet<string>(positiveWords.Select(w => w.ToLower()));
+        _negativeWords = new HashSet<string>(negativeWords.Select(w => w.ToLower()));
+    }
+
+    public SentimentResult Analyze(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return new SentimentResult { Sentiment = Sentiment.Neutral };
+
+        var words = text.Split(new[] { ' ', '.', ',', '!', '?' }, StringSplitOptions.RemoveEmptyEntries)
+                       .Select(w => w.ToLower())
+                       .ToList();
+
+        int positive = words.Count(w => _positiveWords.Contains(w));
+        int negative = words.Count(w => _negativeWords.Contains(w));
+
+        return new SentimentResult
+        {
+            PositiveCount = positive,
+            NegativeCount = negative,
+            Sentiment = positive > negative ? Sentiment.Positive :
+                       negative > positive ? Sentiment.Negative : 
+                       Sentiment.Neutral
+        };
+    }
+}
+
+enum Sentiment { Positive, Neutral, Negative }
+
+class SentimentResult
+{
+    public int PositiveCount { get; set; }
+    public int NegativeCount { get; set; }
+    public Sentiment Sentiment { get; set; }
+}
+
+class Program
+{
+    static void Main()
+    {
+        var positiveWords = new[] { "good", "great", "excellent", "awesome", "love", "perfect" };
+        var negativeWords = new[] { "bad", "terrible", "awful", "hate", "worst", "poor" };
+
+        var analyzer = new SentimentAnalyzer(positiveWords, negativeWords);
+
+        Console.WriteLine("PRODUCT REVIEW SENTIMENT ANALYZER");
+        Console.Write("Enter number of reviews: ");
+        int reviewCount = int.Parse(Console.ReadLine() ?? "0");
+
+        var results = new List<SentimentResult>();
+        for (int i = 0; i < reviewCount; i++)
+        {
+            Console.Write($"Review #{i + 1}: ");
+            string review = Console.ReadLine() ?? "";
+            results.Add(analyzer.Analyze(review));
+        }
+
+        int positive = results.Count(r => r.Sentiment == Sentiment.Positive);
+        int negative = results.Count(r => r.Sentiment == Sentiment.Negative);
+        int neutral = results.Count(r => r.Sentiment == Sentiment.Neutral);
+
+        Console.WriteLine("\nSENTIMENT ANALYSIS RESULTS:");
+        Console.WriteLine($"Positive: {positive} ({positive * 100.0 / reviewCount:F1}%)");
+        Console.WriteLine($"Negative: {negative} ({negative * 100.0 / reviewCount:F1}%)");
+        Console.WriteLine($"Neutral: {neutral} ({neutral * 100.0 / reviewCount:F1}%)");
+    }
+}
