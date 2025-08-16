@@ -1,0 +1,52 @@
+using System;
+using System.Collections.Generic;
+
+class FileVersioner
+{
+    public List<string> ProcessFiles(List<string> existing, List<string> newFiles)
+    {
+        var result = new List<string>(existing);
+        
+        foreach (string file in newFiles)
+        {
+            string name = file;
+            int version = 1;
+            
+            while (result.Contains(name))
+            {
+                int dotIndex = file.LastIndexOf('.');
+                if (dotIndex == -1)
+                {
+                    name = $"{file}(v{version})";
+                }
+                else
+                {
+                    name = $"{file.Substring(0, dotIndex)}(v{version}){file.Substring(dotIndex)}";
+                }
+                version++;
+            }
+            
+            result.Add(name);
+        }
+        
+        return result;
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        FileVersioner versioner = new FileVersioner();
+        var existing = new List<string> { "file.txt", "data.csv" };
+        var newFiles = new List<string> { "file.txt", "image.png", "data.csv" };
+        
+        var result = versioner.ProcessFiles(existing, newFiles);
+        
+        Console.WriteLine("Final files:");
+        foreach (string file in result)
+        {
+            Console.WriteLine(file);
+        }
+    }
+}
