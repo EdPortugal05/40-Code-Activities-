@@ -1,0 +1,58 @@
+using System;
+using System.Collections.Generic;
+
+class CsvRecord
+{
+    public List<string> Fields { get; } = new List<string>();
+
+    public void Parse(string line, char delimiter)
+    {
+        bool inQuotes = false;
+        string currentField = "";
+        
+        for (int i = 0; i < line.Length; i++)
+        {
+            char c = line[i];
+            
+            if (c == '"')
+            {
+                inQuotes = !inQuotes;
+                continue;
+            }
+            
+            if (c == delimiter && !inQuotes)
+            {
+                Fields.Add(currentField);
+                currentField = "";
+                continue;
+            }
+            
+            currentField += c;
+        }
+        
+        // Add the last field
+        Fields.Add(currentField);
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        Console.WriteLine("CSV PARSER");
+        Console.WriteLine("Enter a CSV line:");
+        string line = Console.ReadLine();
+        
+        Console.Write("Enter delimiter character: ");
+        char delimiter = Console.ReadLine()[0];
+        
+        var record = new CsvRecord();
+        record.Parse(line, delimiter);
+        
+        Console.WriteLine($"\nParsed {record.Fields.Count} fields:");
+        for (int i = 0; i < record.Fields.Count; i++)
+        {
+            Console.WriteLine($"[{i}] {record.Fields[i]}");
+        }
+    }
+}
