@@ -1,0 +1,78 @@
+using System;
+using System.Collections.Generic;
+
+class TextCleaner
+{
+    public string Clean(string text)
+    {
+        
+        while (text.Contains("  "))
+            text = text.Replace("  ", " ");
+
+       
+        string[] words = text.Split(' ');
+        for (int i = 0; i < words.Length; i++)
+        {
+            if (words[i].Length > 0)
+            {
+                words[i] = char.ToUpper(words[i][0]) + words[i].Substring(1).ToLower();
+            }
+        }
+        return string.Join(" ", words).Trim();
+    }
+
+    public int CountWords(string text)
+    {
+        return text.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Length;
+    }
+
+    public Dictionary<string, int> GetTopWords(string text, string[] ignoreWords)
+    {
+        var wordCounts = new Dictionary<string, int>();
+        string[] words = text.ToLower().Split(new[] { ' ', '.', ',', '!', '?' },
+                                      StringSplitOptions.RemoveEmptyEntries);
+
+        foreach (string word in words)
+        {
+            if (Array.IndexOf(ignoreWords, word) == -1)
+            {
+                if (wordCounts.ContainsKey(word))
+                    wordCounts[word]++;
+                else
+                    wordCounts[word] = 1;
+            }
+        }
+
+        // Sort by count descending and take top 5
+        var sorted = new List<KeyValuePair<string, int>>(wordCounts);
+        sorted.Sort((a, b) => b.Value.CompareTo(a.Value));
+
+        var top5 = new Dictionary<string, int>();
+        for (int i = 0; i < Math.Min(5, sorted.Count); i++)
+        {
+            top5.Add(sorted[i].Key, sorted[i].Value);
+        }
+
+        return top5;
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        TextCleaner cleaner = new TextCleaner();
+        string sample = "  hello   WORLD!  This is a TEST.  ";
+
+        string cleaned = cleaner.Clean(sample);
+        Console.WriteLine("Cleaned: " + cleaned);
+        Console.WriteLine("Word count: " + cleaner.CountWords(cleaned));
+
+        var topWords = cleaner.GetTopWords(cleaned, new[] { "a", "is", "the" });
+        Console.WriteLine("Top words:");
+        foreach (var pair in topWords)
+        {
+            Console.WriteLine($"{pair.Key}: {pair.Value}");
+        }
+    }
+}
