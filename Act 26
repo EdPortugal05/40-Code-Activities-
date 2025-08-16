@@ -1,0 +1,55 @@
+using System;
+using System.Collections.Generic;
+
+class Box
+{
+    public int Capacity { get; set; }
+    public int Current { get; set; }
+    public List<int> Items = new List<int>();
+    public Box(int capacity) { Capacity = capacity; }
+    public bool TryAdd(int weight)
+    {
+        if (Current + weight <= Capacity)
+        {
+            Items.Add(weight);
+            Current += weight;
+            return true;
+        }
+        return false;
+    }
+}
+
+class Program26
+{
+    static void Main()
+    {
+        Console.Write("Box Capacity: ");
+        int cap = int.Parse(Console.ReadLine());
+        Console.Write("Item weights (comma separated): ");
+        string[] parts = Console.ReadLine().Split(',');
+        int[] items = Array.ConvertAll(parts, int.Parse);
+
+        List<Box> boxes = new List<Box>();
+        foreach (var item in items)
+        {
+            bool placed = false;
+            foreach (var b in boxes)
+            {
+                if (b.TryAdd(item)) { placed = true; break; }
+            }
+            if (!placed)
+            {
+                var newBox = new Box(cap);
+                newBox.TryAdd(item);
+                boxes.Add(newBox);
+            }
+        }
+
+        Console.WriteLine("Boxes used: " + boxes.Count);
+        int i = 1;
+        foreach (var b in boxes)
+        {
+            Console.WriteLine($"Box {i++}: {string.Join(",", b.Items)} (Fill {b.Current}/{b.Capacity})");
+        }
+    }
+}
