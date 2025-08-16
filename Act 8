@@ -1,0 +1,79 @@
+using System;
+
+class Parcel
+{
+    public double Length { get; set; }
+    public double Width { get; set; }
+    public double Height { get; set; }
+    public double Weight { get; set; }
+    public string Zone { get; set; }
+    public string Speed { get; set; }
+
+    public double DimensionalWeight => (Length * Width * Height) / 139;
+
+    public double BillableWeight => Math.Max(Weight, DimensionalWeight);
+
+    public double CalculateCost()
+    {
+        double baseRate = BillableWeight * 0.5;
+        
+        double zoneMultiplier = Zone.ToUpper() switch
+        {
+            "LOCAL" => 1.0,
+            "ZONE1" => 1.2,
+            "ZONE2" => 1.5,
+            "ZONE3" => 2.0,
+            _ => 1.0
+        };
+
+        double speedMultiplier = Speed.ToLower() switch
+        {
+            "express" => 1.5,
+            _ => 1.0
+        };
+
+        return baseRate * zoneMultiplier * speedMultiplier;
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        Console.WriteLine("PARCEL SHIPPING CALCULATOR");
+
+        var parcel = new Parcel();
+
+        parcel.Length = GetPositiveDouble("Length (in): ");
+        parcel.Width = GetPositiveDouble("Width (in): ");
+        parcel.Height = GetPositiveDouble("Height (in): ");
+        parcel.Weight = GetPositiveDouble("Weight (lbs): ");
+        
+        Console.Write("Zone (local/zone1/zone2/zone3): ");
+        parcel.Zone = Console.ReadLine();
+        
+        Console.Write("Speed (standard/express): ");
+        parcel.Speed = Console.ReadLine();
+
+        if (parcel.Length > 36 || parcel.Width > 36 || parcel.Height > 36)
+        {
+            Console.WriteLine("ERROR: Package exceeds maximum dimensions");
+            return;
+        }
+
+        Console.WriteLine($"\nDimensional Weight: {parcel.DimensionalWeight:F1} lbs");
+        Console.WriteLine($"Billable Weight: {parcel.BillableWeight:F1} lbs");
+        Console.WriteLine($"Shipping Cost: ${parcel.CalculateCost():F2}");
+    }
+
+    static double GetPositiveDouble(string prompt)
+    {
+        while (true)
+        {
+            Console.Write(prompt);
+            if (double.TryParse(Console.ReadLine(), out double num) && num > 0)
+                return num;
+            Console.WriteLine("Invalid input. Please enter a positive number.");
+        }
+    }
+}
