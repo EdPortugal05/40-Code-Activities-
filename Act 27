@@ -1,0 +1,62 @@
+using System;
+using System.Collections.Generic;
+
+class ClassSchedule
+{
+    public string Name { get; set; }
+    public DateTime Start { get; set; }
+    public DateTime End { get; set; }
+
+    public ClassSchedule(string name, DateTime start, DateTime end)
+    {
+        if (end <= start) throw new ArgumentException("End time must be after start time");
+        Name = name;
+        Start = start;
+        End = end;
+    }
+
+    public bool ConflictsWith(ClassSchedule other)
+    {
+        return Start < other.End && End > other.Start;
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        List<ClassSchedule> schedules = new List<ClassSchedule>();
+
+        Console.Write("Enter number of classes: ");
+        int n = int.Parse(Console.ReadLine());
+
+        for (int i = 0; i < n; i++)
+        {
+            Console.WriteLine($"Class {i + 1}:");
+            Console.Write("Name: ");
+            string name = Console.ReadLine();
+            Console.Write("Start time (HH:mm): ");
+            DateTime start = DateTime.Parse(Console.ReadLine());
+            Console.Write("End time (HH:mm): ");
+            DateTime end = DateTime.Parse(Console.ReadLine());
+
+            schedules.Add(new ClassSchedule(name, start, end));
+        }
+
+        bool conflictFound = false;
+        for (int i = 0; i < schedules.Count; i++)
+        {
+            for (int j = i + 1; j < schedules.Count; j++)
+            {
+                if (schedules[i].ConflictsWith(schedules[j]))
+                {
+                    Console.WriteLine($"Conflict: {schedules[i].Name} overlaps with {schedules[j].Name}");
+                    conflictFound = true;
+                }
+            }
+        }
+
+        if (!conflictFound)
+            Console.WriteLine("No conflicts found.");
+    }
+}
