@@ -1,0 +1,56 @@
+using System;
+using System.Globalization;
+
+class Money
+{
+    public decimal Amount { get; }
+    public string Currency { get; }
+
+    public Money(string input)
+    {
+        input = input.Trim().ToUpper();
+
+        if (input.StartsWith("$"))
+        {
+            Currency = "USD";
+            Amount = decimal.Parse(input[1..], CultureInfo.InvariantCulture);
+        }
+        else if (input.Contains("PHP"))
+        {
+            Currency = "PHP";
+            Amount = decimal.Parse(input.Replace("PHP", "").Trim(), CultureInfo.InvariantCulture);
+        }
+        else if (input.Contains(",") && input.IndexOf(",") > input.IndexOf("."))
+        {
+            Currency = "EUR";
+            Amount = decimal.Parse(input.Replace(",", ""), CultureInfo.InvariantCulture);
+        }
+        else
+        {
+            throw new Exception("Unrecognized currency format");
+        }
+    }
+
+    public override string ToString() => $"{Currency} {Amount:F2}";
+}
+
+class Program
+{
+    static void Main()
+    {
+        string[] inputs = { "$1,299.50", "1299,50", "PHP 1299.5" };
+
+        foreach (var input in inputs)
+        {
+            try
+            {
+                var money = new Money(input);
+                Console.WriteLine($"Parsed: {money}");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Failed to parse '{input}': {e.Message}");
+            }
+        }
+    }
+}
