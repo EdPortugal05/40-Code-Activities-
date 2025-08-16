@@ -1,0 +1,142 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+class Ingredient
+{
+    public string Name { get; }
+    public double Quantity { get; private set; }
+    public string Unit { get; }
+    
+    public Ingredient(string name, double quantity, string unit)
+    {
+        if (quantity <= 0)
+            throw new ArgumentException("Quantity must be positive");
+            
+        Name = name;
+        Quantity = quantity;
+        Unit = unit;
+    }
+    
+    public void Scale(double factor)
+    {
+        if (factor <= 0)
+            throw new ArgumentException("Scaling factor must be positive");
+            
+        Quantity *= factor;
+    }
+}
+
+class Recipe
+{
+    private List<Ingredient> ingredients;
+    private Dictionary<string, double> pantry;
+    
+    public Recipe(List<Ingredient> ingredients, Dictionary<string, double> pantry)
+    {
+        this.ingredients = ingredients ?? throw new ArgumentNullException(nameof(ingredients));
+        this.pantry = pantry ?? throw new ArgumentNullException(nameof(pantry));
+    }
+    
+    public void Scale(double factor)
+    {
+        if (factor <= 0)
+            throw new ArgumentException("Scaling factor must be positive");
+            
+        foreach (var ingredient in ingredients)
+        {
+            ingredient.Scale(factor);
+        }
+    }
+    
+    public Dictionary<string, Tuple<double, string>> CheckPantry()
+    {
+        var missing = new Dictionary<string, Tuple<double, string>>();
+        
+        foreach (var ingredient in ingredients)
+        {
+            if (!pantry.ContainsKey(ingredient.Name))
+            {
+                missing[ingredient.Name] = Tuple.Create(ingredient.Quantity, ingredient.Unit);
+            }
+            else if (pantry[ingredient.Name] < ingredient.Quantity)
+            {
+                double needed = ingredient.Quantity - pantry[ingredient.Name];
+                missing[ingredient.Name] = Tuple.Create(needed, ingredient.Unit);
+            }
+        }
+        
+        return missing;
+    }
+    
+    public void PrintIngredients()
+    {
+        Console.WriteLine("\nRecipe Ingredients:");
+        Console.WriteLine("-------------------");
+        foreach (var ingredient in ingredients)
+        {
+            Console.WriteLine($"{ingredient.Quantity:F2} {ingredient.Unit} of {ingredient.Name}");
+        }
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        try
+        {
+            // Sample recipe ingredients
+            var ingredients = new List<Ingredient>
+            {
+                new Ingredient("Flour", 2.5, "cups"),
+                new Ingredient("Sugar", 1, "cup"),
+                new Ingredient("Eggs", 3, "units"),
+                new Ingredient("Milk", 0.5, "liters")
+            };
+            
+            // Sample pantry contents
+            var pantry = new Dictionary<string, double>
+            {
+                ["Flour"] = 3.0,
+                ["Sugar"] = 0.75,
+                ["Butter"] = 0.25
+            };
+            
+            var recipe = new Recipe(ingredients, pantry);
+            
+            Console.WriteLine("Original Recipe:");
+            recipe.PrintIngredients();
+            
+            Console.Write("\nEnter scaling factor (e.g., 2 for double, 0.5 for half): ");
+            if (!double.TryParse(Console.ReadLine(), out double factor) || factor <= 0)
+            {
+                throw new ArgumentException("Invalid scaling factor");
+            }
+            
+            recipe.Scale(factor);
+            
+            Console.WriteLine($"\nRecipe after scaling by {factor}:");
+            recipe.PrintIngredients();
+            
+            var missing = recipe.CheckPantry();
+            if (missing.Count > 0)
+            {
+                Console.WriteLine("\nMissing/Insufficient Ingredients:");
+                Console.WriteLine("--------------------------------");
+                foreach (var item in missing)
+                {
+                    Console.WriteLine($"{item.Value.Item1:F2} {item.Value.Item2} of {item.Key}");
+                }
+            }
+            else
+            {
+                Console.WriteLine("\nAll ingredients are available in sufficient quantities!");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"\nError: {ex.Message}");
+        }
+    }
+}
