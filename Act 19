@@ -1,0 +1,142 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+class Question
+{
+    public string Text { get; set; }
+    public string Topic { get; set; }
+    public string Difficulty { get; set; }
+}
+
+class QuizGenerator
+{
+    private List<Question> _questionBank;
+    private Random _random;
+
+    public QuizGenerator(List<Question> questionBank, int? seed = null)
+    {
+        _questionBank = questionBank;
+        _random = seed.HasValue ? new Random(seed.Value) : new Random();
+    }
+
+    public List<Question> GenerateQuiz(Dictionary<string, int> topicCounts, Dictionary<string, int> difficultyCounts)
+    {
+        var selectedQuestions = new List<Question>();
+        
+        // Select questions by topic
+        foreach (var topic in topicCounts)
+        {
+            var topicQuestions = _questionBank
+                .Where(q => q.Topic == topic.Key)
+                .ToList();
+            
+            if (topicQuestions.Count < topic.Value)
+                throw new Exception($"Not enough questions for topic: {topic.Key}");
+            
+            selectedQuestions.AddRange(SelectRandomQuestions(topicQuestions, topic.Value));
+        }
+
+        // Select questions by difficulty
+        foreach (var difficulty in difficultyCounts)
+        {
+            var diffQuestions = _questionBank
+                .Where(q => q.Difficulty == difficulty.Key)
+                .Except(selectedQuestions)
+                .ToList();
+            
+            if (diffQuestions.Count < difficulty.Value)
+                throw new Exception($"Not enough {difficulty.Key} difficulty questions");
+            
+            selectedQuestions.AddRange(SelectRandomQuestions(diffQuestions, difficulty.Value));
+        }
+
+        // Shuffle final questions
+        return selectedQuestions.OrderBy(q => _random.Next()).ToList();
+    }
+
+    private List<Question> SelectRandomQuestions(List<Question> pool, int count)
+    {
+        var selected = new List<Question>();
+        var tempPool = new List<Question>(pool);
+
+        for (int i = 0; i < count; i++)
+        {
+            int index = _random.Next(tempPool.Count);
+            selected.Add(tempPool[index]);
+            tempPool.RemoveAt(index);
+        }
+
+        return selected;
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        Console.WriteLine("QUIZ GENERATOR");
+        
+        // Load question bank
+        List<Question> questionBank = new List<Question>();
+        Console.Write("Number of questions in bank: ");
+        int questionCount = int.Parse(Console.ReadLine());
+
+        for (int i = 0; i < questionCount; i++)
+        {
+            Console.WriteLine($"\nQuestion #{i + 1}");
+            var question = new Question();
+            
+            Console.Write("Question text: ");
+            question.Text = Console.ReadLine();
+            
+            Console.Write("Topic: ");
+            question.Topic = Console.ReadLine();
+            
+            Console.Write("Difficulty (easy/medium/hard): ");
+            question.Difficulty = Console.ReadLine().ToLower();
+            
+            questionBank.Add(question);
+        }
+
+        // Get quiz blueprint
+        Console.WriteLine("\nEnter quiz blueprint:");
+        
+        var topicCounts = new Dictionary<string, int>();
+        Console.Write("Topics (topic:count comma separated): ");
+        foreach (var pair in Console.ReadLine().Split(','))
+        {
+            var parts = pair.Split(':');
+            topicCounts[parts[0].Trim()] = int.Parse(parts[1].Trim());
+        }
+
+        var difficultyCounts = new Dictionary<string, int>();
+        Console.Write("Difficulties (easy:count, medium:count, hard:count): ");
+        foreach (var pair in Console.ReadLine().Split(','))
+        {
+            var parts = pair.Split(':');
+            difficultyCounts[parts[0].Trim()] = int.Parse(parts[1].Trim());
+        }
+
+        Console.Write("Random seed (blank for random): ");
+        int? seed = int.TryParse(Console.ReadLine(), out int s) ? s : (int?)null;
+
+        // Generate quiz
+        try
+        {
+            var generator = new QuizGenerator(questionBank, seed);
+            var quiz = generator.GenerateQuiz(topicCounts, difficultyCounts);
+
+            Console.WriteLine("\nGENERATED QUIZ");
+            foreach (var question in quiz)
+            {
+                Console.WriteLine($"\n[{question.Topic}, {question.Difficulty}]");
+                Console.WriteLine(question.Text);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+}
