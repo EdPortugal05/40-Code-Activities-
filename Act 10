@@ -1,0 +1,181 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+class Transaction
+{
+    public DateTime Date { get; }
+    public string Type { get; }
+    public decimal Amount { get; }
+    public string Memo { get; }
+
+    public Transaction(DateTime date, string type, decimal amount, string memo)
+    {
+        Date = date;
+        Type = type.ToUpper();
+        Amount = amount;
+        Memo = memo;
+    }
+}
+
+class BankLedger
+{
+    private decimal _balance;
+    private readonly List<Transaction> _transactions = new List<Transaction>();
+
+    public BankLedger(decimal openingBalance)
+    {
+        _balance = openingBalance;
+    }
+
+    public void AddTransaction(Transaction transaction)
+    {
+        if (transaction.Type == "W" && transaction.Amount > _balance)
+        {
+            throw new InvalidOperationException("Insufficient funds for withdrawal");
+        }
+
+        _transactions.Add(transaction);
+        _balance += transaction.Type == "D" ? transaction.Amount : -transaction.Amount;
+    }
+
+    public void PrintTransactionHistory()
+    {
+        Console.WriteLine("\nTRANSACTION HISTORY");
+        Console.WriteLine("Date\t\tType\tAmount\tMemo\t\tRunning Balance");
+        
+        decimal runningBalance = _balance;
+        var sortedTransactions = _transactions.OrderBy(t => t.Date).ToList();
+
+        // Calculate running balance by processing transactions in chronological order
+        foreach (var t in sortedTransactions)
+        {
+            runningBalance += t.Type == "W" ? t.Amount : -t.Amount;
+            Console.WriteLine($"{t.Date:yyyy-MM-dd}\t{t.Type}\t{t.Amount:C}\t{t.Memo}\t{runningBalance:C}");
+        }
+    }
+
+    public void Reconcile(decimal statementBalance)
+    {
+        Console.WriteLine($"\nCalculated balance: {_balance:C}");
+        Console.WriteLine($"Statement balance: {statementBalance:C}");
+
+        decimal difference = _balance - statementBalance;
+        if (Math.Abs(difference) > 0.01m)
+        {
+            Console.WriteLine($"\nRECONCILIATION NEEDED");
+            Console.WriteLine($"Difference: {difference:C}");
+
+            // Find potential missing transactions
+            Console.WriteLine("\nCheck for these possible issues:");
+            Console.WriteLine("- Transactions not recorded in your ledger");
+            Console.WriteLine("- Transactions with incorrect amounts");
+            Console.WriteLine("- Bank fees or interest not accounted for");
+        }
+        else
+        {
+            Console.WriteLine("\nBalances match - reconciliation successful!");
+        }
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        Console.WriteLine("BANK LEDGER SYSTEM");
+        
+        // Get opening balance
+        decimal openingBalance = GetDecimalInput("Enter opening balance: ");
+        var ledger = new BankLedger(openingBalance);
+
+        // Get transactions
+        int transactionCount = GetPositiveInteger("Number of transactions: ");
+        for (int i = 0; i < transactionCount; i++)
+        {
+            Console.WriteLine($"\nTransaction #{i + 1}");
+            try
+            {
+                DateTime date = GetDateInput("Date (yyyy-mm-dd): ");
+                string type = GetTransactionType("Type (D=Deposit, W=Withdrawal): ");
+                decimal amount = GetPositiveDecimal("Amount: ");
+                string memo = GetInput("Memo: ");
+
+                ledger.AddTransaction(new Transaction(date, type, amount, memo));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message}");
+                i--; // Retry this transaction
+            }
+        }
+
+        // Get statement balance
+        decimal statementBalance = GetDecimalInput("\nBank statement ending balance: ");
+
+        // Display results
+        ledger.PrintTransactionHistory();
+        ledger.Reconcile(statementBalance);
+    }
+
+    // Helper methods for input validation
+    static string GetInput(string prompt)
+    {
+        Console.Write(prompt);
+        return Console.ReadLine().Trim();
+    }
+
+    static decimal GetDecimalInput(string prompt)
+    {
+        while (true)
+        {
+            Console.Write(prompt);
+            if (decimal.TryParse(Console.ReadLine(), out decimal result))
+                return result;
+            Console.WriteLine("Invalid amount. Please enter a valid number.");
+        }
+    }
+
+    static decimal GetPositiveDecimal(string prompt)
+    {
+        while (true)
+        {
+            decimal result = GetDecimalInput(prompt);
+            if (result > 0) return result;
+            Console.WriteLine("Amount must be positive.");
+        }
+    }
+
+    static int GetPositiveInteger(string prompt)
+    {
+        while (true)
+        {
+            Console.Write(prompt);
+            if (int.TryParse(Console.ReadLine(), out int result) && result >= 0)
+                return result;
+            Console.WriteLine("Invalid input. Please enter a positive integer.");
+        }
+    }
+
+    static DateTime GetDateInput(string prompt)
+    {
+        while (true)
+        {
+            Console.Write(prompt);
+            if (DateTime.TryParse(Console.ReadLine(), out DateTime result))
+                return result;
+            Console.WriteLine("Invalid date format. Please use yyyy-mm-dd.");
+        }
+    }
+
+    static string GetTransactionType(string prompt)
+    {
+        while (true)
+        {
+            Console.Write(prompt);
+            string input = Console.ReadLine().Trim().ToUpper();
+            if (input == "D" || input == "W") return input;
+            Console.WriteLine("Invalid type. Please enter 'D' or 'W'.");
+        }
+    }
+}
