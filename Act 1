@@ -1,0 +1,114 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+class Student
+{
+    public string Name;
+    public List<double> QuizScores;
+    public List<double> ExamScores;
+    public List<double> ProjectScores;
+
+    public double CalculateFinalGrade(double quizWeight, double examWeight, double projectWeight)
+    {
+        double quizAvg = QuizScores.Count > 0 ? QuizScores.Average() : 0;
+        double examAvg = ExamScores.Count > 0 ? ExamScores.Average() : 0;
+        double projectAvg = ProjectScores.Count > 0 ? ProjectScores.Average() : 0;
+
+        return (quizAvg * quizWeight + examAvg * examWeight + projectAvg * projectWeight) / 100;
+    }
+
+    public string GetLetterGrade(double quizWeight, double examWeight, double projectWeight)
+    {
+        double grade = CalculateFinalGrade(quizWeight, examWeight, projectWeight);
+
+        if (grade >= 90) return "A";
+        if (grade >= 80) return "B";
+        if (grade >= 70) return "C";
+        if (grade >= 60) return "D";
+        return "F";
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        Console.Write("Enter number of students: ");
+        int studentCount = int.Parse(Console.ReadLine());
+        List<Student> students = new List<Student>();
+
+        for (int i = 0; i < studentCount; i++)
+        {
+            Student student = new Student();
+            Console.WriteLine($"\nStudent #{i + 1}");
+
+            Console.Write("Name: ");
+            student.Name = Console.ReadLine();
+
+            student.QuizScores = GetScores("quizzes");
+            student.ExamScores = GetScores("exams");
+            student.ProjectScores = GetScores("projects");
+
+            students.Add(student);
+        }
+
+        Console.Write("\nEnter weights (quizzes exams projects): ");
+        string[] weights = Console.ReadLine().Split();
+        double quizWeight = double.Parse(weights[0]);
+        double examWeight = double.Parse(weights[1]);
+        double projectWeight = double.Parse(weights[2]);
+
+        var sortedStudents = students.OrderByDescending(s =>
+            s.CalculateFinalGrade(quizWeight, examWeight, projectWeight)).ToList();
+
+        Console.WriteLine("\nTop 3 Students:");
+        for (int i = 0; i < 3 && i < sortedStudents.Count; i++)
+        {
+            var student = sortedStudents[i];
+            Console.WriteLine($"{i + 1}. {student.Name} - {student.CalculateFinalGrade(quizWeight, examWeight, projectWeight):F1} ({student.GetLetterGrade(quizWeight, examWeight, projectWeight)})");
+        }
+
+        var failingStudents = sortedStudents.Where(s =>
+            s.CalculateFinalGrade(quizWeight, examWeight, projectWeight) < 60);
+
+        Console.WriteLine("\nStudents Below Passing:");
+        if (!failingStudents.Any())
+        {
+            Console.WriteLine("None");
+        }
+        else
+        {
+            foreach (var student in failingStudents)
+            {
+                Console.WriteLine($"{student.Name} - {student.CalculateFinalGrade(quizWeight, examWeight, projectWeight):F1} (F)");
+            }
+        }
+    }
+
+    static List<double> GetScores(string scoreType)
+    {
+        List<double> scores = new List<double>();
+
+        Console.Write($"Number of {scoreType}: ");
+        int count = int.Parse(Console.ReadLine());
+
+        for (int i = 0; i < count; i++)
+        {
+            while (true)
+            {
+                Console.Write($"Score {i + 1}: ");
+                string input = Console.ReadLine();
+
+                if (double.TryParse(input, out double score) && score >= 0 && score <= 100)
+                {
+                    scores.Add(score);
+                    break;
+                }
+                Console.WriteLine("Invalid score. Must be 0-100. Try again.");
+            }
+        }
+
+        return scores;
+    }
+}
