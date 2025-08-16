@@ -1,0 +1,113 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+class TrainService
+{
+    public string Id { get; }
+    public DateTime Arrival { get; }
+    public DateTime Departure { get; }
+    public int Platform { get; set; }
+    
+    public TrainService(string id, DateTime arrival, DateTime departure)
+    {
+        if (arrival >= departure)
+            throw new ArgumentException("Departure must be after arrival");
+            
+        Id = id;
+        Arrival = arrival;
+        Departure = departure;
+    }
+}
+
+class Timetable
+{
+    public static List<TrainService> MergeSchedules(
+        List<TrainService> line1, 
+        List<TrainService> line2, 
+        TimeSpan turnaroundTime,
+        int platformCount = 2)
+    {
+        var allServices = new List<TrainService>();
+        allServices.AddRange(line1);
+        allServices.AddRange(line2);
+        
+        // Sort by arrival time
+        allServices.Sort((a, b) => a.Arrival.CompareTo(b.Arrival));
+        
+        // Track platform availability
+        var platformAvailability = new DateTime[platformCount];
+        
+        foreach (var service in allServices)
+        {
+            bool assigned = false;
+            
+            // Try to assign to each platform
+            for (int platform = 0; platform < platformCount; platform++)
+            {
+                if (service.Arrival >= platformAvailability[platform])
+                {
+                    service.Platform = platform + 1; // Platform numbers start at 1
+                    platformAvailability[platform] = service.Departure.Add(turnaroundTime);
+                    assigned = true;
+                    break;
+                }
+            }
+            
+            if (!assigned)
+            {
+                throw new Exception($"Cannot schedule service {service.Id} - no available platforms");
+            }
+        }
+        
+        return allServices;
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        try
+        {
+            // Sample data - Line 1 services
+            var line1 = new List<TrainService>
+            {
+                new TrainService("L1-08:00", 
+                    DateTime.Today.AddHours(8), 
+                    DateTime.Today.AddHours(8.5)),
+                new TrainService("L1-09:00", 
+                    DateTime.Today.AddHours(9), 
+                    DateTime.Today.AddHours(9.5))
+            };
+            
+            // Sample data - Line 2 services
+            var line2 = new List<TrainService>
+            {
+                new TrainService("L2-08:30", 
+                    DateTime.Today.AddHours(8.5), 
+                    DateTime.Today.AddHours(9)),
+                new TrainService("L2-09:30", 
+                    DateTime.Today.AddHours(9.5), 
+                    DateTime.Today.AddHours(10))
+            };
+            
+            // Merge schedules with 15 minute turnaround time
+            var merged = Timetable.MergeSchedules(line1, line2, TimeSpan.FromMinutes(15));
+            
+            // Display results
+            Console.WriteLine("Merged Timetable:");
+            Console.WriteLine("Time\t\tTrain\tPlatform");
+            Console.WriteLine("----------------------------");
+            
+            foreach (var service in merged.OrderBy(s => s.Arrival))
+            {
+                Console.WriteLine($"{service.Arrival:t}-{service.Departure:t}\t{service.Id}\tPlatform {service.Platform}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+}
