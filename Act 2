@@ -1,0 +1,135 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+class InventoryItem
+{
+    public string Code { get; set; }
+    public string Name { get; set; }
+    public decimal Price { get; set; }
+    public int CurrentStock { get; set; }
+    public int MinStock { get; set; }
+    public int[] WeeklySales { get; set; }
+
+    public decimal AverageDailySales => WeeklySales.Length > 0 ? (decimal)WeeklySales.Average() : 0;
+
+    public bool NeedsReorder(int leadTimeDays)
+    {
+        decimal projectedUsage = AverageDailySales * leadTimeDays;
+        return (CurrentStock - projectedUsage) < MinStock;
+    }
+
+    public decimal GetUrgency(int leadTimeDays)
+    {
+        if (AverageDailySales == 0) return 0;
+        decimal daysOfStock = CurrentStock / AverageDailySales;
+        return MinStock / daysOfStock;
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        Console.WriteLine("INVENTORY REORDER ADVISOR");
+        Console.WriteLine("-------------------------");
+
+        List<InventoryItem> inventory = new List<InventoryItem>();
+
+        // Get number of items
+        int itemCount = GetPositiveInteger("Enter number of inventory items: ");
+
+        // Input item data
+        for (int i = 0; i < itemCount; i++)
+        {
+            Console.WriteLine($"\nITEM #{i + 1}");
+
+            InventoryItem item = new InventoryItem
+            {
+                Code = GetInput("Item code: "),
+                Name = GetInput("Item name: "),
+                Price = GetPositiveDecimal("Unit price: "),
+                CurrentStock = GetPositiveInteger("Current stock level: "),
+                MinStock = GetPositiveInteger("Minimum stock level: "),
+                WeeklySales = new int[7]
+            };
+
+            Console.WriteLine("\nEnter sales for last 7 days:");
+            for (int day = 0; day < 7; day++)
+            {
+                item.WeeklySales[day] = GetNonNegativeInteger($"Day {day + 1} sales: ");
+            }
+
+            inventory.Add(item);
+        }
+
+        // Get lead time
+        int leadTime = GetPositiveInteger("\nEnter lead time in days: ");
+
+        // Calculate and display reorder recommendations
+        Console.WriteLine("\nREORDER RECOMMENDATIONS");
+        Console.WriteLine("-----------------------");
+
+        var reorderItems = inventory
+            .Where(item => item.NeedsReorder(leadTime))
+            .OrderByDescending(item => item.GetUrgency(leadTime))
+            .ToList();
+
+        if (reorderItems.Count == 0)
+        {
+            Console.WriteLine("No items need reordering at this time.");
+            return;
+        }
+
+        Console.WriteLine("Code\tName\t\tCurrent\tMin\tAvgDaily\tUrgency\tAction");
+        Console.WriteLine("----\t----\t\t-------\t---\t--------\t-------\t------");
+
+        foreach (var item in reorderItems)
+        {
+            decimal reorderQty = (item.AverageDailySales * leadTime) + item.MinStock - item.CurrentStock;
+            Console.WriteLine($"{item.Code}\t{item.Name.PadRight(10)}\t{item.CurrentStock}\t{item.MinStock}\t" +
+                            $"{item.AverageDailySales:F1}\t\t{item.GetUrgency(leadTime):F2}\t" +
+                            $"Reorder {(int)Math.Ceiling(reorderQty)} units");
+        }
+    }
+
+    // Helper methods for input validation
+    static string GetInput(string prompt)
+    {
+        Console.Write(prompt);
+        return Console.ReadLine().Trim();
+    }
+
+    static int GetPositiveInteger(string prompt)
+    {
+        while (true)
+        {
+            Console.Write(prompt);
+            if (int.TryParse(Console.ReadLine(), out int result) && result > 0)
+                return result;
+            Console.WriteLine("Please enter a positive whole number.");
+        }
+    }
+
+    static int GetNonNegativeInteger(string prompt)
+    {
+        while (true)
+        {
+            Console.Write(prompt);
+            if (int.TryParse(Console.ReadLine(), out int result) && result >= 0)
+                return result;
+            Console.WriteLine("Please enter a zero or positive whole number.");
+        }
+    }
+
+    static decimal GetPositiveDecimal(string prompt)
+    {
+        while (true)
+        {
+            Console.Write(prompt);
+            if (decimal.TryParse(Console.ReadLine(), out decimal result) && result > 0)
+                return result;
+            Console.WriteLine("Please enter a positive number.");
+        }
+    }
+}
