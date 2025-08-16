@@ -1,78 +1,95 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
 
 class TextCleaner
 {
-    public string Clean(string text)
-    {
-        
-        while (text.Contains("  "))
-            text = text.Replace("  ", " ");
+    private static readonly string[] StopWords = { "the", "and", "a", "an", "in", "on", "at", "to", "for", "of" };
 
-       
-        string[] words = text.Split(' ');
-        for (int i = 0; i < words.Length; i++)
-        {
-            if (words[i].Length > 0)
-            {
-                words[i] = char.ToUpper(words[i][0]) + words[i].Substring(1).ToLower();
-            }
-        }
-        return string.Join(" ", words).Trim();
+    public static string CleanText(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input))
+            return string.Empty;
+
+        // Normalize whitespace and trim
+        string cleaned = Regex.Replace(input.Trim(), @"\s+", " ");
+
+        // Remove non-printable characters except basic punctuation
+        cleaned = Regex.Replace(cleaned, @"[^\u0020-\u007E]", string.Empty);
+
+        // Convert to title case
+        TextInfo textInfo = CultureInfo.CurrentCulture.TextInfo;
+        cleaned = textInfo.ToTitleCase(cleaned.ToLower());
+
+        // Fix small words in title case
+        cleaned = Regex.Replace(cleaned, @"\b(A|An|The|And|But|Or|For|Nor|With|On|At|To|From|By)\b", 
+            match => match.Value.ToLower(), RegexOptions.IgnoreCase);
+
+        return cleaned;
     }
 
-    public int CountWords(string text)
+    public static TextStats AnalyzeText(string text)
     {
-        return text.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Length;
+        var stats = new TextStats();
+
+        if (string.IsNullOrWhiteSpace(text))
+            return stats;
+
+        // Word count
+        var words = Regex.Matches(text, @"\b[\w']+\b")
+                        .Select(m => m.Value)
+                        .ToList();
+        stats.WordCount = words.Count;
+
+        // Sentence count (naive approach)
+        stats.SentenceCount = Regex.Matches(text, @"[^\.!?]*[\.!?]").Count;
+
+        // Top 5 words (excluding stop words)
+        stats.TopWords = words
+            .Where(w => !StopWords.Contains(w.ToLower()))
+            .GroupBy(w => w.ToLower())
+            .OrderByDescending(g => g.Count())
+            .Take(5)
+            .Select(g => g.Key)
+            .ToList();
+
+        return stats;
     }
+}
 
-    public Dictionary<string, int> GetTopWords(string text, string[] ignoreWords)
-    {
-        var wordCounts = new Dictionary<string, int>();
-        string[] words = text.ToLower().Split(new[] { ' ', '.', ',', '!', '?' },
-                                      StringSplitOptions.RemoveEmptyEntries);
-
-        foreach (string word in words)
-        {
-            if (Array.IndexOf(ignoreWords, word) == -1)
-            {
-                if (wordCounts.ContainsKey(word))
-                    wordCounts[word]++;
-                else
-                    wordCounts[word] = 1;
-            }
-        }
-
-        // Sort by count descending and take top 5
-        var sorted = new List<KeyValuePair<string, int>>(wordCounts);
-        sorted.Sort((a, b) => b.Value.CompareTo(a.Value));
-
-        var top5 = new Dictionary<string, int>();
-        for (int i = 0; i < Math.Min(5, sorted.Count); i++)
-        {
-            top5.Add(sorted[i].Key, sorted[i].Value);
-        }
-
-        return top5;
-    }
+class TextStats
+{
+    public int WordCount { get; set; }
+    public int SentenceCount { get; set; }
+    public List<string> TopWords { get; set; } = new List<string>();
 }
 
 class Program
 {
     static void Main()
     {
-        TextCleaner cleaner = new TextCleaner();
-        string sample = "  hello   WORLD!  This is a TEST.  ";
-
-        string cleaned = cleaner.Clean(sample);
-        Console.WriteLine("Cleaned: " + cleaned);
-        Console.WriteLine("Word count: " + cleaner.CountWords(cleaned));
-
-        var topWords = cleaner.GetTopWords(cleaned, new[] { "a", "is", "the" });
-        Console.WriteLine("Top words:");
-        foreach (var pair in topWords)
+        Console.WriteLine("TEXT REPORT CLEANER");
+        Console.WriteLine("Enter your text (press Enter twice to finish):");
+        
+        StringBuilder input = new StringBuilder();
+        string line;
+        while (!string.IsNullOrWhiteSpace(line = Console.ReadLine()))
         {
-            Console.WriteLine($"{pair.Key}: {pair.Value}");
+            input.AppendLine(line);
         }
+
+        string cleanedText = TextCleaner.CleanText(input.ToString());
+        TextStats stats = TextCleaner.AnalyzeText(cleanedText);
+
+        Console.WriteLine("\nCLEANED TEXT:");
+        Console.WriteLine(cleanedText);
+
+        Console.WriteLine("\nTEXT STATISTICS:");
+        Console.WriteLine($"Word count: {stats.WordCount}");
+        Console.WriteLine($"Sentence count: {stats.SentenceCount}");
+        Console.WriteLine($"Top 5 words: {string.Join(", ", stats.TopWords)}");
     }
 }
