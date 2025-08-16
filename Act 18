@@ -1,0 +1,256 @@
+using System;
+using System.Collections.Generic;
+
+class SeatingPlan
+{
+    private string[,] seats;
+    private List<Tuple<string, string>> mustSitTogether = new List<Tuple<string, string>>();
+    private List<Tuple<string, string>> mustSeparate = new List<Tuple<string, string>>();
+
+    public SeatingPlan(int rows, int cols)
+    {
+        seats = new string[rows, cols];
+    }
+
+    public void AssignStudent(int row, int col, string name)
+    {
+        if (row < 0 || row >= seats.GetLength(0) || col < 0 || col >= seats.GetLength(1))
+            throw new ArgumentException("Invalid seat position");
+
+        seats[row, col] = name?.Trim();
+    }
+
+    public void AddMustSitTogether(string student1, string student2)
+    {
+        if (string.IsNullOrWhiteSpace(student1)) throw new ArgumentException("Student name cannot be empty");
+        if (string.IsNullOrWhiteSpace(student2)) throw new ArgumentException("Student name cannot be empty");
+        mustSitTogether.Add(Tuple.Create(student1.Trim(), student2.Trim()));
+    }
+
+    public void AddMustSeparate(string student1, string student2)
+    {
+        if (string.IsNullOrWhiteSpace(student1)) throw new ArgumentException("Student name cannot be empty");
+        if (string.IsNullOrWhiteSpace(student2)) throw new ArgumentException("Student name cannot be empty");
+        mustSeparate.Add(Tuple.Create(student1.Trim(), student2.Trim()));
+    }
+
+    public ValidationResult Validate()
+    {
+        var result = new ValidationResult { IsValid = true };
+
+        // Check all students in constraints exist
+        foreach (var pair in mustSitTogether)
+        {
+            if (!StudentExists(pair.Item1))
+                result.AddError($"{pair.Item1} is in constraints but not seated");
+            if (!StudentExists(pair.Item2))
+                result.AddError($"{pair.Item2} is in constraints but not seated");
+        }
+
+        foreach (var pair in mustSeparate)
+        {
+            if (!StudentExists(pair.Item1))
+                result.AddError($"{pair.Item1} is in constraints but not seated");
+            if (!StudentExists(pair.Item2))
+                result.AddError($"{pair.Item2} is in constraints but not seated");
+        }
+
+        if (!result.IsValid) return result;
+
+        // Validate must-sit-together pairs
+        foreach (var pair in mustSitTogether)
+        {
+            if (!AreAdjacent(pair.Item1, pair.Item2))
+                result.AddError($"{pair.Item1} and {pair.Item2} should be adjacent");
+        }
+
+        // Validate must-separate pairs
+        foreach (var pair in mustSeparate)
+        {
+            if (AreAdjacent(pair.Item1, pair.Item2))
+                result.AddError($"{pair.Item1} and {pair.Item2} should be separated");
+        }
+
+        return result;
+    }
+
+    private bool StudentExists(string student)
+    {
+        for (int r = 0; r < seats.GetLength(0); r++)
+        {
+            for (int c = 0; c < seats.GetLength(1); c++)
+            {
+                if (seats[r, c] != null &&
+                    string.Equals(seats[r, c], student, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private bool AreAdjacent(string student1, string student2)
+    {
+        for (int r = 0; r < seats.GetLength(0); r++)
+        {
+            for (int c = 0; c < seats.GetLength(1); c++)
+            {
+                if (seats[r, c] != null &&
+                    string.Equals(seats[r, c], student1, StringComparison.OrdinalIgnoreCase))
+                {
+                    // Check all 4 adjacent seats
+                    if (r > 0 && CheckAdjacent(r - 1, c, student2)) return true;
+                    if (r < seats.GetLength(0) - 1 && CheckAdjacent(r + 1, c, student2)) return true;
+                    if (c > 0 && CheckAdjacent(r, c - 1, student2)) return true;
+                    if (c < seats.GetLength(1) - 1 && CheckAdjacent(r, c + 1, student2)) return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private bool CheckAdjacent(int row, int col, string student)
+    {
+        return seats[row, col] != null &&
+               string.Equals(seats[row, col], student, StringComparison.OrdinalIgnoreCase);
+    }
+
+    public void Display()
+    {
+        Console.WriteLine("\nCurrent Seating Chart:");
+        Console.Write("   ");
+        for (int c = 0; c < seats.GetLength(1); c++)
+        {
+            Console.Write($" {c + 1,-3}");
+        }
+        Console.WriteLine();
+
+        for (int r = 0; r < seats.GetLength(0); r++)
+        {
+            Console.Write($"{r + 1,-2} ");
+            for (int c = 0; c < seats.GetLength(1); c++)
+            {
+                Console.Write($"|{seats[r, c]?.PadRight(3) ?? "---"}");
+            }
+            Console.WriteLine("|");
+        }
+    }
+}
+
+class ValidationResult
+{
+    public bool IsValid { get; set; } = true;
+    public List<string> Errors { get; } = new List<string>();
+
+    public void AddError(string message)
+    {
+        IsValid = false;
+        Errors.Add(message);
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        try
+        {
+            Console.WriteLine("Seating Chart Validator");
+            Console.WriteLine("----------------------");
+
+            // Get seating chart dimensions
+            int rows = GetPositiveInteger("Enter number of rows: ");
+            int cols = GetPositiveInteger("Enter number of columns: ");
+            var plan = new SeatingPlan(rows, cols);
+
+            // Assign students to seats
+            Console.WriteLine("\nSeat Assignment:");
+            for (int r = 0; r < rows; r++)
+            {
+                for (int c = 0; c < cols; c++)
+                {
+                    string name;
+                    while (true)
+                    {
+                        Console.Write($"Enter name for seat {r + 1}-{c + 1} (or leave blank): ");
+                        name = Console.ReadLine()?.Trim();
+                        if (name == null || name.Length <= 3) break;
+                        Console.WriteLine("Name must be 3 characters or less");
+                    }
+                    plan.AssignStudent(r, c, name);
+                }
+            }
+
+            // Add must-sit-together pairs
+            Console.WriteLine("\nMust Sit Together Pairs:");
+            while (true)
+            {
+                var pair = GetPair("Enter pair (name1,name2) or blank to finish: ");
+                if (pair == null) break;
+                plan.AddMustSitTogether(pair.Item1, pair.Item2);
+            }
+
+            // Add must-separate pairs
+            Console.WriteLine("\nMust Separate Pairs:");
+            while (true)
+            {
+                var pair = GetPair("Enter pair (name1,name2) or blank to finish: ");
+                if (pair == null) break;
+                plan.AddMustSeparate(pair.Item1, pair.Item2);
+            }
+
+            // Display and validate
+            plan.Display();
+            var result = plan.Validate();
+
+            Console.WriteLine("\nValidation Results:");
+            if (result.IsValid)
+            {
+                Console.WriteLine("All seating constraints are satisfied!");
+            }
+            else
+            {
+                Console.WriteLine("Issues found:");
+                foreach (var error in result.Errors)
+                {
+                    Console.WriteLine($"- {error}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"\nError: {ex.Message}");
+        }
+    }
+
+    static Tuple<string, string> GetPair(string prompt)
+    {
+        while (true)
+        {
+            Console.Write(prompt);
+            string input = Console.ReadLine()?.Trim();
+            if (string.IsNullOrEmpty(input)) return null;
+
+            string[] names = input.Split(',');
+            if (names.Length != 2 || string.IsNullOrWhiteSpace(names[0]) || string.IsNullOrWhiteSpace(names[1]))
+            {
+                Console.WriteLine("Please enter exactly two names separated by a comma");
+                continue;
+            }
+
+            return Tuple.Create(names[0].Trim(), names[1].Trim());
+        }
+    }
+
+    static int GetPositiveInteger(string prompt)
+    {
+        while (true)
+        {
+            Console.Write(prompt);
+            if (int.TryParse(Console.ReadLine(), out int result) && result > 0)
+                return result;
+            Console.WriteLine("Please enter a positive integer");
+        }
+    }
+}
