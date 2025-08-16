@@ -1,0 +1,179 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+class SeatingArrangement
+{
+    private string[,] seats;
+    private List<string> students;
+    private List<Tuple<string, string>> mustSitTogether;
+    private List<Tuple<string, string>> mustSeparate;
+    private Random random = new Random();
+    
+    public SeatingArrangement(int rows, int cols, List<string> students, 
+                            List<Tuple<string, string>> mustSitTogether,
+                            List<Tuple<string, string>> mustSeparate)
+    {
+        if (rows * cols < students.Count)
+            throw new ArgumentException("Not enough seats for all students");
+            
+        seats = new string[rows, cols];
+        this.students = new List<string>(students);
+        this.mustSitTogether = mustSitTogether ?? new List<Tuple<string, string>>();
+        this.mustSeparate = mustSeparate ?? new List<Tuple<string, string>>();
+    }
+    
+    public bool TryArrange(int maxAttempts = 100)
+    {
+        for (int attempt = 0; attempt < maxAttempts; attempt++)
+        {
+            ShuffleStudents();
+            if (TryPlaceStudents())
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    private void ShuffleStudents()
+    {
+        int n = students.Count;
+        while (n > 1)
+        {
+            n--;
+            int k = random.Next(n + 1);
+            string value = students[k];
+            students[k] = students[n];
+            students[n] = value;
+        }
+    }
+    
+    private bool TryPlaceStudents()
+    {
+        int index = 0;
+        for (int row = 0; row < seats.GetLength(0); row++)
+        {
+            for (int col = 0; col < seats.GetLength(1); col++)
+            {
+                if (index >= students.Count) break;
+                
+                string student = students[index];
+                if (CanPlaceStudent(student, row, col))
+                {
+                    seats[row, col] = student;
+                    index++;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+    
+    private bool CanPlaceStudent(string student, int row, int col)
+    {
+        // Check must-sit-together constraints
+        foreach (var pair in mustSitTogether)
+        {
+            if (pair.Item1 == student || pair.Item2 == student)
+            {
+                string other = pair.Item1 == student ? pair.Item2 : pair.Item1;
+                if (!IsAdjacent(other, row, col))
+                    return false;
+            }
+        }
+        
+        // Check must-separate constraints
+        foreach (var pair in mustSeparate)
+        {
+            if (pair.Item1 == student || pair.Item2 == student)
+            {
+                string other = pair.Item1 == student ? pair.Item2 : pair.Item1;
+                if (IsAdjacent(other, row, col))
+                    return false;
+            }
+        }
+        
+        return true;
+    }
+    
+    private bool IsAdjacent(string student, int row, int col)
+    {
+        for (int r = Math.Max(0, row-1); r <= Math.Min(seats.GetLength(0)-1, row+1); r++)
+        {
+            for (int c = Math.Max(0, col-1); c <= Math.Min(seats.GetLength(1)-1, col+1); c++)
+            {
+                if (seats[r, c] == student)
+                    return true;
+            }
+        }
+        return false;
+    }
+    
+    public void PrintSeating()
+    {
+        Console.WriteLine("\nSeating Arrangement:");
+        Console.WriteLine(new string('-', seats.GetLength(1) * 10));
+        
+        for (int row = 0; row < seats.GetLength(0); row++)
+        {
+            for (int col = 0; col < seats.GetLength(1); col++)
+            {
+                Console.Write($"| {seats[row, col] ?? "Empty",-8}");
+            }
+            Console.WriteLine("|");
+            Console.WriteLine(new string('-', seats.GetLength(1) * 10));
+        }
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        try
+        {
+            Console.WriteLine("Exam Seating Arrangement");
+            Console.WriteLine("-----------------------");
+            
+            // Sample data
+            var students = new List<string>
+            {
+                "Alice", "Bob", "Charlie", "David",
+                "Eve", "Frank", "Grace", "Henry"
+            };
+            
+            var mustSitTogether = new List<Tuple<string, string>>
+            {
+                Tuple.Create("Alice", "Bob"),
+                Tuple.Create("Charlie", "David")
+            };
+            
+            var mustSeparate = new List<Tuple<string, string>>
+            {
+                Tuple.Create("Eve", "Frank"),
+                Tuple.Create("Grace", "Henry")
+            };
+            
+            Console.WriteLine($"Arranging {students.Count} students...");
+            
+            var arrangement = new SeatingArrangement(3, 3, students, mustSitTogether, mustSeparate);
+            
+            if (arrangement.TryArrange())
+            {
+                arrangement.PrintSeating();
+            }
+            else
+            {
+                Console.WriteLine("Failed to create seating arrangement that satisfies all constraints");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+}
