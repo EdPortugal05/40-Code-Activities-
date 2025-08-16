@@ -1,0 +1,36 @@
+using System;
+
+class BudgetPlan
+{
+    public double Total { get; set; }
+    public double Stay { get; set; }
+    public double Transport { get; set; }
+    public double Food { get; set; }
+    public double Misc { get; set; }
+    public BudgetPlan(double total, double w1, double w2, double w3, double w4)
+    {
+        if (Math.Abs((w1+w2+w3+w4)-1) > 0.001) throw new ArgumentException("Weights must sum to 1");
+        Total = total;
+        Stay = total * w1;
+        Transport = total * w2;
+        Food = total * w3;
+        Misc = total * w4;
+    }
+}
+
+class Program28
+{
+    static void Main()
+    {
+        Console.Write("Total budget: ");
+        double total = double.Parse(Console.ReadLine());
+        Console.Write("Days: ");
+        int days = int.Parse(Console.ReadLine());
+        var b = new BudgetPlan(total, 0.4, 0.3, 0.2, 0.1);
+
+        Console.WriteLine($"Stay/day {b.Stay/days}");
+        Console.WriteLine($"Transport/day {b.Transport/days}");
+        Console.WriteLine($"Food/day {b.Food/days}");
+        Console.WriteLine($"Misc/day {b.Misc/days}");
+    }
+}
