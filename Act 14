@@ -1,0 +1,68 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+class Booking
+{
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+    
+    public IEnumerable<DateTime> GetBookingDates()
+    {
+        for (DateTime date = StartDate; date <= EndDate; date = date.AddDays(1))
+            yield return date;
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        Console.WriteLine("BOOKING DATE AGGREGATOR");
+        
+        List<Booking> bookings = new List<Booking>();
+        Console.Write("Number of bookings: ");
+        int bookingCount = int.Parse(Console.ReadLine());
+        
+        for (int i = 0; i < bookingCount; i++)
+        {
+            Console.WriteLine($"\nBooking #{i + 1}");
+            var booking = new Booking();
+            
+            Console.Write("Start date (yyyy-mm-dd): ");
+            booking.StartDate = DateTime.Parse(Console.ReadLine());
+            
+            Console.Write("End date (yyyy-mm-dd): ");
+            booking.EndDate = DateTime.Parse(Console.ReadLine());
+            
+            if (booking.EndDate < booking.StartDate)
+            {
+                Console.WriteLine("Error: End date before start date");
+                i--;
+                continue;
+            }
+            
+            bookings.Add(booking);
+        }
+        
+        // Aggregate bookings by date
+        var dateCounts = new Dictionary<DateTime, int>();
+        foreach (var booking in bookings)
+        {
+            foreach (var date in booking.GetBookingDates())
+            {
+                if (dateCounts.ContainsKey(date))
+                    dateCounts[date]++;
+                else
+                    dateCounts[date] = 1;
+            }
+        }
+        
+        // Display results
+        Console.WriteLine("\nBOOKING COUNTS BY DATE:");
+        foreach (var date in dateCounts.Keys.OrderBy(d => d))
+        {
+            Console.WriteLine($"{date:yyyy-MM-dd}: {dateCounts[date]} bookings");
+        }
+    }
+}
