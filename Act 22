@@ -1,0 +1,66 @@
+using System;
+using System.Collections.Generic;
+
+class EmailManager
+{
+    public bool IsValidEmail(string email)
+    {
+        try 
+        {
+            var addr = new System.Net.Mail.MailAddress(email);
+            return addr.Address == email;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public Dictionary<string, List<string>> GroupEmails(string[] emails)
+    {
+        var groups = new Dictionary<string, List<string>>();
+        
+        foreach (string email in emails)
+        {
+            string cleanEmail = email.ToLower().Trim();
+            if (IsValidEmail(cleanEmail))
+            {
+                string domain = cleanEmail.Split('@')[1];
+                
+                if (!groups.ContainsKey(domain))
+                    groups[domain] = new List<string>();
+                
+                groups[domain].Add(cleanEmail);
+            }
+        }
+        
+        return groups;
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        EmailManager manager = new EmailManager();
+        string[] emails = {
+            "test@example.com",
+            "user@gmail.com",
+            "invalid-email",
+            "admin@example.com",
+            "another@gmail.com"
+        };
+        
+        var groups = manager.GroupEmails(emails);
+        
+        Console.WriteLine("Valid emails by domain:");
+        foreach (var group in groups)
+        {
+            Console.WriteLine($"Domain: {group.Key}");
+            foreach (string email in group.Value)
+            {
+                Console.WriteLine($"- {email}");
+            }
+        }
+    }
+}
