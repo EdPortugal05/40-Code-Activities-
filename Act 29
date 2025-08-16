@@ -1,0 +1,35 @@
+using System;
+
+class Employee
+{
+    public string Name { get; set; }
+    public decimal Hours { get; set; }
+    public decimal Rate { get; set; }
+
+    public Employee(string name, decimal hours, decimal rate)
+    {
+        Name = name; Hours = hours; Rate = rate;
+    }
+
+    public decimal ComputePay()
+    {
+        if (Hours <= 40) return Hours * Rate;
+        return 40 * Rate + (Hours - 40) * Rate * 1.5m;
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        Console.Write("Name: ");
+        string name = Console.ReadLine();
+        Console.Write("Hours worked: ");
+        decimal hours = decimal.Parse(Console.ReadLine());
+        Console.Write("Rate: ");
+        decimal rate = decimal.Parse(Console.ReadLine());
+
+        Employee e = new Employee(name, hours, rate);
+        Console.WriteLine($"Total Pay: {e.ComputePay()}");
+    }
+}
