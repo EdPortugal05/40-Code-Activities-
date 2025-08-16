@@ -1,0 +1,114 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+class Student
+{
+    public string Name { get; }
+    public int Zone { get; }
+    
+    public Student(string name, int zone)
+    {
+        Name = name;
+        Zone = zone;
+    }
+}
+
+class Bus
+{
+    public int Capacity { get; }
+    public List<Student> Students { get; } = new List<Student>();
+    
+    public Bus(int capacity) => Capacity = capacity;
+    
+    public bool AddStudent(Student student)
+    {
+        if (Students.Count >= Capacity) return false;
+        Students.Add(student);
+        return true;
+    }
+}
+
+class Router
+{
+    public static List<Bus> AssignStudents(List<Student> students, List<Bus> buses, int zones)
+    {
+        // Assign by zone priority
+        for (int zone = 1; zone <= zones; zone++)
+        {
+            var zoneStudents = students.Where(s => s.Zone == zone).ToList();
+            
+            foreach (var student in zoneStudents)
+            {
+                bool assigned = false;
+                
+                // Try to assign to existing buses
+                foreach (var bus in buses)
+                {
+                    if (bus.AddStudent(student))
+                    {
+                        assigned = true;
+                        break;
+                    }
+                }
+                
+                if (!assigned)
+                {
+                    // Try to assign to any bus (spillover)
+                    foreach (var bus in buses)
+                    {
+                        if (bus.AddStudent(student))
+                        {
+                            assigned = true;
+                            break;
+                        }
+                    }
+                }
+                
+                if (!assigned)
+                {
+                    throw new Exception($"Could not assign student {student.Name} from zone {zone}");
+                }
+            }
+        }
+        
+        return buses;
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        // Sample data
+        var students = new List<Student>
+        {
+            new Student("Alice", 1),
+            new Student("Bob", 1),
+            new Student("Charlie", 2),
+            new Student("David", 2),
+            new Student("Eve", 3)
+        };
+        
+        var buses = new List<Bus> { new Bus(2), new Bus(3) };
+        
+        try
+        {
+            var assignedBuses = Router.AssignStudents(students, buses, 3);
+            
+            Console.WriteLine("Bus Assignments:");
+            for (int i = 0; i < assignedBuses.Count; i++)
+            {
+                Console.WriteLine($"Bus {i+1}:");
+                foreach (var student in assignedBuses[i].Students)
+                {
+                    Console.WriteLine($"  {student.Name} (Zone {student.Zone})");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+}
