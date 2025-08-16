@@ -1,0 +1,61 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+class Seller
+{
+    public string Name { get; }
+    private List<int> ratings = new List<int>();
+    public int TotalSales { get; private set; }
+    public int Cancellations { get; private set; }
+    
+    public Seller(string name) => Name = name;
+    
+    public void AddRating(int rating) => ratings.Add(rating);
+    public void AddSale() => TotalSales++;
+    public void AddCancellation() => Cancellations++;
+    
+    public double AverageRating => ratings.Count > 0 ? ratings.Average() : 0;
+    public double CancellationRate => TotalSales > 0 ? (double)Cancellations / TotalSales : 0;
+    
+    public string GetBadge()
+    {
+        if (AverageRating >= 4.5 && CancellationRate < 0.05 && TotalSales >= 100)
+            return "Gold";
+        if (AverageRating >= 4.0 && CancellationRate < 0.1 && TotalSales >= 50)
+            return "Silver";
+        if (AverageRating >= 3.5 && CancellationRate < 0.2)
+            return "Bronze";
+        return "None";
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        var sellers = new Dictionary<string, Seller>();
+        
+        // Sample data
+        var seller1 = new Seller("John");
+        seller1.AddRating(5); seller1.AddRating(4); seller1.AddRating(5);
+        seller1.AddSale(); seller1.AddSale(); seller1.AddSale();
+        sellers["John"] = seller1;
+        
+        var seller2 = new Seller("Alice");
+        seller2.AddRating(3); seller2.AddRating(2); seller2.AddRating(4);
+        seller2.AddSale(); seller2.AddCancellation();
+        sellers["Alice"] = seller2;
+        
+        Console.WriteLine("Seller Badges:");
+        foreach (var seller in sellers.Values.OrderByDescending(s => s.AverageRating))
+        {
+            Console.WriteLine($"{seller.Name}:");
+            Console.WriteLine($"  Avg Rating: {seller.AverageRating:F1}");
+            Console.WriteLine($"  Sales: {seller.TotalSales}");
+            Console.WriteLine($"  Cancellation Rate: {seller.CancellationRate:P0}");
+            Console.WriteLine($"  Badge: {seller.GetBadge()}");
+            Console.WriteLine();
+        }
+    }
+}
