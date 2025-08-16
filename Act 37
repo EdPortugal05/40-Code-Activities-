@@ -1,0 +1,100 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+class Applicant
+{
+    public string Name { get; }
+    public double GPA { get; }
+    public decimal FamilyIncome { get; }
+    public List<string> Extracurriculars { get; }
+    public int Awards { get; }
+    
+    public Applicant(string name, double gpa, decimal income, List<string> extracurriculars, int awards)
+    {
+        if (gpa < 0 || gpa > 4.0) throw new ArgumentException("GPA must be between 0 and 4.0");
+        if (income < 0) throw new ArgumentException("Income cannot be negative");
+        if (awards < 0) throw new ArgumentException("Awards cannot be negative");
+        
+        Name = name;
+        GPA = gpa;
+        FamilyIncome = income;
+        Extracurriculars = extracurriculars?.Select(e => e.ToLower().Trim()).ToList() ?? new List<string>();
+        Awards = awards;
+    }
+    
+    public Dictionary<string, string> CheckEligibility()
+    {
+        var eligible = new Dictionary<string, string>();
+        
+        // Academic Excellence Scholarship
+        if (GPA >= 3.8 && FamilyIncome < 50000)
+            eligible["Academic Excellence"] = $"GPA: {GPA}, Income: {FamilyIncome:C}";
+            
+        // Sports Scholarship
+        if (Extracurriculars.Contains("sports") && Awards >= 2)
+            eligible["Athletic"] = $"{Awards} awards in sports";
+            
+        // Arts Scholarship
+        if (Extracurriculars.Intersect(new[] {"music", "art", "drama"}).Any() && GPA >= 3.0)
+            eligible["Arts"] = "Talent in " + string.Join(", ", Extracurriculars.Intersect(new[] {"music", "art", "drama"}));
+            
+        // Community Service Scholarship
+        if (Extracurriculars.Contains("volunteer") && GPA >= 3.5)
+            eligible["Community Service"] = "Volunteer experience";
+            
+        return eligible;
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        try
+        {
+            Console.WriteLine("Scholarship Eligibility Checker");
+            Console.WriteLine("-------------------------------");
+            
+            Console.Write("Enter applicant name: ");
+            string name = Console.ReadLine();
+            
+            Console.Write("Enter GPA (0.0-4.0): ");
+            if (!double.TryParse(Console.ReadLine(), out double gpa) || gpa < 0 || gpa > 4.0)
+                throw new ArgumentException("Invalid GPA");
+            
+            Console.Write("Enter family income: ");
+            if (!decimal.TryParse(Console.ReadLine(), out decimal income) || income < 0)
+                throw new ArgumentException("Invalid income");
+            
+            Console.Write("Enter extracurricular activities (comma separated): ");
+            var activities = Console.ReadLine().Split(',').Select(a => a.Trim()).ToList();
+            
+            Console.Write("Enter number of awards: ");
+            if (!int.TryParse(Console.ReadLine(), out int awards) || awards < 0)
+                throw new ArgumentException("Invalid number of awards");
+            
+            var applicant = new Applicant(name, gpa, income, activities, awards);
+            var eligible = applicant.CheckEligibility();
+            
+            Console.WriteLine("\nEligibility Results:");
+            Console.WriteLine("-------------------");
+            
+            if (eligible.Count > 0)
+            {
+                foreach (var scholarship in eligible)
+                {
+                    Console.WriteLine($"- {scholarship.Key}: {scholarship.Value}");
+                }
+            }
+            else
+            {
+                Console.WriteLine("No scholarships available based on current criteria");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"\nError: {ex.Message}");
+        }
+    }
+}
