@@ -1,0 +1,77 @@
+using System;
+using System.Collections.Generic;
+
+class Product
+{
+    private static readonly List<string> ValidCategories = new List<string> 
+        { "electronics", "clothing", "food", "furniture" };
+        
+    private static readonly List<string> ValidColors = new List<string>
+        { "red", "blue", "green", "black", "white", "yellow" };
+
+    public string Brand { get; set; }
+    public string Category { get; set; }
+    public string Color { get; set; }
+    public string Size { get; set; }
+    public int Year { get; set; }
+    public string CustomCode { get; set; }
+
+    public string GenerateSku()
+    {
+        // Validate inputs
+        if (!ValidCategories.Contains(Category.ToLower()))
+            throw new ArgumentException("Invalid category");
+            
+        if (!ValidColors.Contains(Color.ToLower()))
+            throw new ArgumentException("Invalid color");
+
+        string sku = $"{Brand.Substring(0, 3).ToUpper()}-";
+        sku += $"{Category.Substring(0, 3).ToUpper()}-";
+        sku += $"{Color.Substring(0, 2).ToUpper()}-";
+        sku += $"{Size.Replace(" ", "").ToUpper()}-";
+        sku += $"{Year.ToString().Substring(2)}";
+        
+        if (!string.IsNullOrEmpty(CustomCode))
+            sku += $"-{CustomCode.ToUpper()}";
+            
+        return sku;
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        Console.WriteLine("PRODUCT SKU GENERATOR");
+        
+        var product = new Product();
+        
+        Console.Write("Brand: ");
+        product.Brand = Console.ReadLine();
+        
+        Console.Write("Category: ");
+        product.Category = Console.ReadLine();
+        
+        Console.Write("Color: ");
+        product.Color = Console.ReadLine();
+        
+        Console.Write("Size: ");
+        product.Size = Console.ReadLine();
+        
+        Console.Write("Year: ");
+        product.Year = int.Parse(Console.ReadLine());
+        
+        Console.Write("Custom Code (optional): ");
+        product.CustomCode = Console.ReadLine();
+
+        try
+        {
+            string sku = product.GenerateSku();
+            Console.WriteLine($"\nGenerated SKU: {sku}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+}
