@@ -1,0 +1,73 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+class Course
+{
+    public string Code { get; set; }
+    public string Name { get; set; }
+    public List<string> Prerequisites { get; set; } = new List<string>();
+}
+
+class Program
+{
+    static void Main()
+    {
+        Console.WriteLine("COURSE PLANNER");
+        
+        // Load course catalog
+        List<Course> catalog = new List<Course>();
+        Console.Write("Number of courses: ");
+        int courseCount = int.Parse(Console.ReadLine());
+
+        for (int i = 0; i < courseCount; i++)
+        {
+            var course = new Course();
+            Console.WriteLine($"\nCourse #{i + 1}");
+            Console.Write("Code: ");
+            course.Code = Console.ReadLine().ToUpper();
+            Console.Write("Name: ");
+            course.Name = Console.ReadLine();
+            
+            Console.Write("Prerequisites (comma separated): ");
+            string[] prereqs = Console.ReadLine().Split(',');
+            foreach (string p in prereqs)
+            {
+                if (!string.IsNullOrWhiteSpace(p))
+                    course.Prerequisites.Add(p.Trim().ToUpper());
+            }
+            
+            catalog.Add(course);
+        }
+
+        // Get student's completed courses
+        Console.Write("\nEnter your completed courses (comma separated): ");
+        HashSet<string> completed = new HashSet<string>(
+            Console.ReadLine().ToUpper().Split(',').Select(x => x.Trim()));
+
+        // Get requested courses
+        Console.Write("Enter courses you want to take (comma separated): ");
+        string[] requested = Console.ReadLine().ToUpper().Split(',');
+
+        Console.WriteLine("\nENROLLMENT RESULTS");
+        foreach (string courseCode in requested.Select(x => x.Trim()).Where(x => !string.IsNullOrEmpty(x)))
+        {
+            var course = catalog.FirstOrDefault(c => c.Code == courseCode);
+            if (course == null)
+            {
+                Console.WriteLine($"{courseCode}: Not found in catalog");
+                continue;
+            }
+
+            var missingPrereqs = course.Prerequisites.Where(p => !completed.Contains(p)).ToList();
+            if (missingPrereqs.Count == 0)
+            {
+                Console.WriteLine($"{courseCode}: APPROVED");
+            }
+            else
+            {
+                Console.WriteLine($"{courseCode}: DENIED - Missing prerequisites: {string.Join(", ", missingPrereqs)}");
+            }
+        }
+    }
+}
