@@ -1,0 +1,61 @@
+using System;
+
+class Employee
+{
+    public string Name;
+    public double Rate;
+    public double[] Hours = new double[7];
+
+    public double GrossPay()
+    {
+        double total = 0;
+        foreach (double h in Hours)
+        {
+            if (h > 8) total += 8 * Rate + (h - 8) * Rate * 1.5;
+            else total += h * Rate;
+        }
+        return total > 40 * Rate ? 40 * Rate + (total - 40 * Rate) * 1.5 : total;
+    }
+
+    public double NetPay()
+    {
+        double gross = GrossPay();
+        if (gross <= 500) return gross * 0.9;
+        if (gross <= 1000) return 500 * 0.9 + (gross - 500) * 0.8;
+        return 500 * 0.9 + 500 * 0.8 + (gross - 1000) * 0.7;
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        Console.Write("Number of employees: ");
+        int n = int.Parse(Console.ReadLine());
+        Employee[] emps = new Employee[n];
+
+        for (int i = 0; i < n; i++)
+        {
+            emps[i] = new Employee();
+            Console.WriteLine($"\nEmployee {i+1}:");
+            Console.Write("Name: ");
+            emps[i].Name = Console.ReadLine();
+            Console.Write("Hourly rate: ");
+            emps[i].Rate = double.Parse(Console.ReadLine());
+            
+            for (int j = 0; j < 7; j++)
+            {
+                Console.Write($"Day {j+1} hours: ");
+                emps[i].Hours[j] = double.Parse(Console.ReadLine());
+            }
+        }
+
+        Array.Sort(emps, (a,b) => b.NetPay().CompareTo(a.NetPay()));
+
+        Console.WriteLine("\nPayroll Summary:");
+        foreach (var e in emps)
+        {
+            Console.WriteLine($"{e.Name}: Gross ${e.GrossPay():F2}, Net ${e.NetPay():F2}");
+        }
+    }
+}
