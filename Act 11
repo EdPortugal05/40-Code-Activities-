@@ -1,0 +1,83 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
+
+class Account
+{
+    public string OriginalName { get; }
+    public string Username { get; }
+    public string Password { get; }
+
+    public Account(string name, string password)
+    {
+        OriginalName = name;
+        Username = NormalizeUsername(name);
+        Password = password;
+    }
+
+    private string NormalizeUsername(string name)
+    {
+        // Convert to lowercase and replace spaces with hyphens
+        string normalized = name.ToLower().Replace(" ", "-");
+        
+        // Remove invalid characters
+        normalized = Regex.Replace(normalized, "[^a-z0-9-]", "");
+        
+        // Trim hyphens from start/end
+        return normalized.Trim('-');
+    }
+
+    public bool IsStrongPassword()
+    {
+        if (Password.Length < 8) return false;
+        if (!Password.Any(char.IsUpper)) return false;
+        if (!Password.Any(char.IsLower)) return false;
+        if (!Password.Any(char.IsDigit)) return false;
+        if (!Password.Any(c => !char.IsLetterOrDigit(c))) return false;
+        
+        string[] commonPasswords = { "password", "123456", "qwerty" };
+        if (commonPasswords.Any(p => Password.Contains(p, StringComparison.OrdinalIgnoreCase)))
+            return false;
+        
+        return true;
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        List<Account> accounts = new List<Account>();
+        Console.Write("Number of accounts: ");
+        int accountCount = int.Parse(Console.ReadLine());
+
+        for (int i = 0; i < accountCount; i++)
+        {
+            Console.WriteLine($"\nAccount #{i + 1}");
+            Console.Write("Full name: ");
+            string name = Console.ReadLine();
+            
+            Console.Write("Password: ");
+            string password = Console.ReadLine();
+            
+            var account = new Account(name, password);
+            
+            // Handle duplicates
+            if (accounts.Any(a => a.Username == account.Username))
+            {
+                int suffix = 1;
+                while (accounts.Any(a => a.Username == $"{account.Username}{suffix}"))
+                    suffix++;
+                
+                account = new Account($"{name}{suffix}", password);
+                Console.WriteLine($"Username exists! Assigned: {account.Username}");
+            }
+            
+            accounts.Add(account);
+            
+            Console.WriteLine($"Username: {account.Username}");
+            Console.WriteLine($"Password strength: {(account.IsStrongPassword() ? "STRONG" : "WEAK")}");
+        }
+    }
+}
