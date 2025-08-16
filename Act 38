@@ -1,0 +1,150 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+class ShortUrlService
+{
+    private static readonly Dictionary<string, ShortUrl> urlDatabase = new Dictionary<string, ShortUrl>();
+    private const int CodeLength = 6;
+    private const string CodeChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    private static readonly Random random = new Random();
+
+    public class ShortUrl
+    {
+        public string OriginalUrl { get; }
+        public string ShortCode { get; }
+        public int HitCount { get; private set; }
+        public DateTime CreatedDate { get; }
+        public DateTime LastAccessed { get; private set; }
+
+        public ShortUrl(string originalUrl, string shortCode)
+        {
+            if (string.IsNullOrWhiteSpace(originalUrl))
+                throw new ArgumentException("URL cannot be empty");
+
+            if (!Uri.TryCreate(originalUrl, UriKind.Absolute, out _))
+                throw new ArgumentException("Invalid URL format");
+
+            OriginalUrl = originalUrl;
+            ShortCode = shortCode;
+            CreatedDate = DateTime.Now;
+            LastAccessed = DateTime.Now;
+        }
+
+        public string Access()
+        {
+            HitCount++;
+            LastAccessed = DateTime.Now;
+            return OriginalUrl;
+        }
+    }
+
+    public static string CreateShortUrl(string originalUrl, string customCode = null)
+    {
+        string code = string.IsNullOrWhiteSpace(customCode) ? GenerateRandomCode() : customCode;
+
+        if (urlDatabase.ContainsKey(code))
+            throw new InvalidOperationException("Short code already exists");
+
+        var shortUrl = new ShortUrl(originalUrl, code);
+        urlDatabase[code] = shortUrl;
+        return code;
+    }
+
+    public static ShortUrl GetUrl(string shortCode)
+    {
+        urlDatabase.TryGetValue(shortCode, out ShortUrl url);
+        return url;
+    }
+
+    public static IEnumerable<ShortUrl> GetAllUrls()
+    {
+        return urlDatabase.Values;
+    }
+
+    private static string GenerateRandomCode()
+    {
+        while (true) // loop until a unique code is generated
+        {
+            var code = new string(Enumerable.Repeat(CodeChars, CodeLength)
+                .Select(s => s[random.Next(s.Length)]).ToArray());
+
+            if (!urlDatabase.ContainsKey(code))
+                return code;
+        }
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        Console.WriteLine("URL Shortener Service");
+        Console.WriteLine("---------------------");
+
+        while (true)
+        {
+            Console.WriteLine("\n1. Create short URL");
+            Console.WriteLine("2. Access URL by code");
+            Console.WriteLine("3. View all URLs");
+            Console.WriteLine("4. Exit");
+            Console.Write("Choose option: ");
+            string choice = Console.ReadLine();
+
+            try
+            {
+                if (choice == "1")
+                {
+                    Console.Write("Enter URL to shorten: ");
+                    string url = Console.ReadLine();
+
+                    Console.Write("Enter custom code (optional): ");
+                    string codeInput = Console.ReadLine();
+
+                    string code = ShortUrlService.CreateShortUrl(url, codeInput);
+                    Console.WriteLine($"Created: {code}");
+                }
+                else if (choice == "2")
+                {
+                    Console.Write("Enter short code: ");
+                    string codeToAccess = Console.ReadLine();
+
+                    var shortUrl = ShortUrlService.GetUrl(codeToAccess);
+                    if (shortUrl != null)
+                    {
+                        Console.WriteLine($"Redirecting to: {shortUrl.Access()}");
+                        Console.WriteLine($"Times accessed: {shortUrl.HitCount}");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Code not found");
+                    }
+                }
+                else if (choice == "3")
+                {
+                    Console.WriteLine("\nAll Short URLs:");
+                    Console.WriteLine("--------------");
+                    foreach (var item in ShortUrlService.GetAllUrls().OrderBy(u => u.CreatedDate))
+                    {
+                        Console.WriteLine($"{item.ShortCode} -> {item.OriginalUrl}");
+                        Console.WriteLine($"  Created: {item.CreatedDate}, Last accessed: {item.LastAccessed}");
+                        Console.WriteLine($"  Hits: {item.HitCount}");
+                    }
+                }
+                else if (choice == "4")
+                {
+                    Console.WriteLine("Goodbye!");
+                    break; // ends loop cleanly, no unreachable code
+                }
+                else
+                {
+                    Console.WriteLine("Invalid option");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message}");
+            }
+        }
+    }
+}
