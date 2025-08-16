@@ -1,0 +1,102 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+class UserFitness
+{
+    public string Name;
+    public int[] DailySteps;
+    public int[] DailyCalories;
+    public int StepGoal;
+    public int CalorieGoal;
+
+    public double AverageSteps => DailySteps.Average();
+    public double AverageCalories => DailyCalories.Average();
+
+    public int BestDay()
+    {
+        int max = 0;
+        int bestDay = 0;
+        for (int i = 0; i < 7; i++)
+        {
+            int total = DailySteps[i] + DailyCalories[i];
+            if (total > max)
+            {
+                max = total;
+                bestDay = i + 1;
+            }
+        }
+        return bestDay;
+    }
+
+    public bool OnTrack()
+    {
+        int count = 0;
+        for (int i = 0; i < 7; i++)
+        {
+            if (DailySteps[i] >= StepGoal && DailyCalories[i] >= CalorieGoal)
+                count++;
+        }
+        return count >= 5;
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        Console.Write("Number of users: ");
+        int userCount = int.Parse(Console.ReadLine());
+        List<UserFitness> users = new List<UserFitness>();
+
+        for (int i = 0; i < userCount; i++)
+        {
+            var user = new UserFitness
+            {
+                DailySteps = new int[7],
+                DailyCalories = new int[7]
+            };
+
+            Console.WriteLine($"\nUser #{i + 1}");
+            Console.Write("Name: ");
+            user.Name = Console.ReadLine();
+
+            Console.WriteLine("Enter daily steps (7 days):");
+            for (int j = 0; j < 7; j++)
+                user.DailySteps[j] = GetPositiveInt($"Day {j + 1}: ");
+
+            Console.WriteLine("Enter daily calories (7 days):");
+            for (int j = 0; j < 7; j++)
+                user.DailyCalories[j] = GetPositiveInt($"Day {j + 1}: ");
+
+            Console.Write("Step goal: ");
+            user.StepGoal = GetPositiveInt("");
+
+            Console.Write("Calorie goal: ");
+            user.CalorieGoal = GetPositiveInt("");
+
+            users.Add(user);
+        }
+
+        Console.WriteLine("\nWEEKLY FITNESS REPORT");
+        foreach (var user in users)
+        {
+            Console.WriteLine($"\n{user.Name}:");
+            Console.WriteLine($"Avg Steps: {user.AverageSteps:F0}");
+            Console.WriteLine($"Avg Calories: {user.AverageCalories:F0}");
+            Console.WriteLine($"Best Day: Day {user.BestDay()}");
+            Console.WriteLine($"On Track: {(user.OnTrack() ? "YES" : "NO")}");
+        }
+    }
+
+    static int GetPositiveInt(string prompt)
+    {
+        while (true)
+        {
+            Console.Write(prompt);
+            if (int.TryParse(Console.ReadLine(), out int num) && num >= 0)
+                return num;
+            Console.WriteLine("Invalid input. Please enter a positive number.");
+        }
+    }
+}
