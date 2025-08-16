@@ -1,0 +1,91 @@
+using System;
+
+class FareCalculator
+{
+    public static double CalculateFare(double distance, string timeSlot, string passengerType, string couponCode)
+    {
+        // Validate inputs
+        if (distance <= 0) throw new ArgumentException("Distance must be positive");
+        
+        timeSlot = timeSlot.ToLower();
+        passengerType = passengerType.ToLower();
+        
+        // Base fare calculation
+        double baseRate = 0.5; // $0.50 per km
+        double fare = distance * baseRate;
+        
+        // Time multiplier
+        double timeMultiplier = timeSlot == "peak" ? 1.2 : 1.0;
+        fare *= timeMultiplier;
+        
+        // Passenger discount
+        double discount = passengerType switch
+        {
+            "student" => 0.25,
+            "senior" => 0.30,
+            _ => 0.0 // adult or other
+        };
+        fare *= (1 - discount);
+        
+        // Apply best coupon
+        fare = ApplyCoupon(fare, couponCode);
+        
+        // Minimum fare
+        fare = Math.Max(fare, 5.0);
+        
+        return fare;
+    }
+    
+    private static double ApplyCoupon(double fare, string couponCode)
+    {
+        if (string.IsNullOrWhiteSpace(couponCode)) return fare;
+        
+        string[] coupons = couponCode.ToUpper().Split(',');
+        double bestDiscount = 0;
+        
+        foreach (string coupon in coupons)
+        {
+            double discount = coupon switch
+            {
+                "10OFF" => Math.Min(10, fare * 0.1), // $10 or 10% off
+                "5FIXED" => 5, // $5 off
+                "20PCT" => fare * 0.2, // 20% off
+                "FREESHIP" => fare * 0.15, // 15% off
+                _ => 0 // invalid coupon
+            };
+            
+            if (discount > bestDiscount)
+                bestDiscount = discount;
+        }
+        
+        return fare - bestDiscount;
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        try
+        {
+            Console.Write("Enter trip distance (km): ");
+            double distance = double.Parse(Console.ReadLine());
+            
+            Console.Write("Time slot (peak/offpeak): ");
+            string timeSlot = Console.ReadLine();
+            
+            Console.Write("Passenger type (adult/student/senior): ");
+            string passengerType = Console.ReadLine();
+            
+            Console.Write("Coupon code (if any): ");
+            string couponCode = Console.ReadLine();
+            
+            double fare = FareCalculator.CalculateFare(distance, timeSlot, passengerType, couponCode);
+            Console.WriteLine($"\nTotal fare: ${fare:F2}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+}
