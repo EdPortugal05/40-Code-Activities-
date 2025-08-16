@@ -1,0 +1,51 @@
+using System;
+using System.Collections.Generic;
+
+class ParkingSession
+{
+    public DateTime Entry { get; set; }
+    public DateTime Exit { get; set; }
+    public ParkingSession(DateTime entry, DateTime exit)
+    {
+        if (exit <= entry) throw new ArgumentException("Exit must be after entry");
+        Entry = entry;
+        Exit = exit;
+    }
+    public int Hours()
+    {
+        return (int)Math.Ceiling((Exit - Entry).TotalHours);
+    }
+    public decimal FeeHourly(decimal rate) => Hours() * rate;
+    public decimal FeeFlat(decimal flat) => flat;
+    public decimal FeeProgressive(decimal first, decimal next)
+    {
+        int h = Hours();
+        if (h <= 1) return first;
+        return first + (h - 1) * next;
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        Console.Write("Entry (yyyy-MM-dd HH:mm): ");
+        DateTime entry = DateTime.Parse(Console.ReadLine());
+        Console.Write("Exit (yyyy-MM-dd HH:mm): ");
+        DateTime exit = DateTime.Parse(Console.ReadLine());
+
+        ParkingSession s = new ParkingSession(entry, exit);
+        decimal hourly = s.FeeHourly(50);
+        decimal flat = s.FeeFlat(300);
+        decimal prog = s.FeeProgressive(60, 40);
+
+        decimal min = Math.Min(hourly, Math.Min(flat, prog));
+        string plan = min == hourly ? "Hourly" : min == flat ? "Flat" : "Progressive";
+
+        Console.WriteLine($"Hours: {s.Hours()}");
+        Console.WriteLine($"Hourly Fee: {hourly}");
+        Console.WriteLine($"Flat Fee: {flat}");
+        Console.WriteLine($"Progressive Fee: {prog}");
+        Console.WriteLine($"Cheapest Plan: {plan} = {min}");
+    }
+}
