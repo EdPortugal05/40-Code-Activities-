@@ -1,0 +1,182 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+
+class PasswordEntry
+{
+    public string Service { get; set; }
+    public string Username { get; set; }
+    public string Password { get; set; } // stored as plain text (for simplicity)
+
+    public PasswordEntry(string service, string username, string password)
+    {
+        Service = service;
+        Username = username;
+        Password = password;
+    }
+}
+
+class PasswordManager
+{
+    private const string FileName = "passwords.txt";
+    private List<PasswordEntry> entries = new List<PasswordEntry>();
+
+    public PasswordManager()
+    {
+        Load();
+    }
+
+    public void AddEntry(string service, string username, string password)
+    {
+        entries.Add(new PasswordEntry(service, username, password));
+        Save();
+    }
+
+    public PasswordEntry FindEntry(string service)
+    {
+        foreach (var entry in entries)
+        {
+            if (entry.Service.Equals(service, StringComparison.OrdinalIgnoreCase))
+            {
+                return entry;
+            }
+        }
+        return null;
+    }
+
+    public List<PasswordEntry> GetAllEntries()
+    {
+        return entries;
+    }
+
+    public bool RemoveEntry(string service)
+    {
+        PasswordEntry found = null;
+        foreach (var entry in entries)
+        {
+            if (entry.Service.Equals(service, StringComparison.OrdinalIgnoreCase))
+            {
+                found = entry;
+                break;
+            }
+        }
+
+        if (found != null)
+        {
+            entries.Remove(found);
+            Save();
+            return true;
+        }
+        return false;
+    }
+
+    private void Load()
+    {
+        if (!File.Exists(FileName)) return;
+
+        string[] lines = File.ReadAllLines(FileName);
+        foreach (string line in lines)
+        {
+            string[] parts = line.Split('|');
+            if (parts.Length == 3)
+            {
+                entries.Add(new PasswordEntry(parts[0], parts[1], parts[2]));
+            }
+        }
+    }
+
+    private void Save()
+    {
+        List<string> lines = new List<string>();
+        foreach (var entry in entries)
+        {
+            lines.Add(entry.Service + "|" + entry.Username + "|" + entry.Password);
+        }
+        File.WriteAllLines(FileName, lines);
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        Console.WriteLine("Password Manager");
+        Console.WriteLine("----------------");
+
+        PasswordManager manager = new PasswordManager();
+
+        while (true)
+        {
+            Console.WriteLine("\n1. Add password");
+            Console.WriteLine("2. Retrieve password");
+            Console.WriteLine("3. List all services");
+            Console.WriteLine("4. Remove password");
+            Console.WriteLine("5. Exit");
+            Console.Write("Choose option: ");
+            string choice = Console.ReadLine();
+
+            if (choice == "1")
+            {
+                Console.Write("Enter service name: ");
+                string service = Console.ReadLine();
+
+                Console.Write("Enter username: ");
+                string username = Console.ReadLine();
+
+                Console.Write("Enter password: ");
+                string password = Console.ReadLine();
+
+                manager.AddEntry(service, username, password);
+                Console.WriteLine("Password saved successfully.");
+            }
+            else if (choice == "2")
+            {
+                Console.Write("Enter service name: ");
+                string service = Console.ReadLine();
+                PasswordEntry entry = manager.FindEntry(service);
+
+                if (entry != null)
+                {
+                    Console.WriteLine("\nService: " + entry.Service);
+                    Console.WriteLine("Username: " + entry.Username);
+                    Console.WriteLine("Password: " + entry.Password);
+                }
+                else
+                {
+                    Console.WriteLine("Service not found.");
+                }
+            }
+            else if (choice == "3")
+            {
+                Console.WriteLine("\nStored Services:");
+                foreach (var e in manager.GetAllEntries())
+                {
+                    Console.WriteLine("- " + e.Service + " (user: " + e.Username + ")");
+                }
+            }
+            else if (choice == "4")
+            {
+                Console.Write("Enter service name to remove: ");
+                string service = Console.ReadLine();
+
+                if (manager.RemoveEntry(service))
+                {
+                    Console.WriteLine("Password removed.");
+                }
+                else
+                {
+                    Console.WriteLine("Service not found.");
+                }
+            }
+            else if (choice == "5")
+            {
+                Console.WriteLine("Goodbye!");
+                break;
+            }
+            else
+            {
+                Console.WriteLine("Invalid option, try again.");
+            }
+        }
+    }
+}
