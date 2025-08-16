@@ -1,0 +1,102 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+class Team
+{
+    public string Name { get; }
+    public int Points { get; set; }
+    public int GoalsFor { get; set; }
+    public int GoalsAgainst { get; set; }
+    public int GoalDifference => GoalsFor - GoalsAgainst;
+    
+    public Team(string name) => Name = name;
+}
+
+class Tournament
+{
+    private Dictionary<string, Team> teams = new Dictionary<string, Team>();
+    
+    public void AddMatch(string homeTeam, int homeScore, string awayTeam, int awayScore)
+    {
+        if (!teams.ContainsKey(homeTeam)) teams[homeTeam] = new Team(homeTeam);
+        if (!teams.ContainsKey(awayTeam)) teams[awayTeam] = new Team(awayTeam);
+        
+        teams[homeTeam].GoalsFor += homeScore;
+        teams[homeTeam].GoalsAgainst += awayScore;
+        
+        teams[awayTeam].GoalsFor += awayScore;
+        teams[awayTeam].GoalsAgainst += homeScore;
+        
+        if (homeScore > awayScore)
+        {
+            teams[homeTeam].Points += 3;
+        }
+        else if (homeScore == awayScore)
+        {
+            teams[homeTeam].Points += 1;
+            teams[awayTeam].Points += 1;
+        }
+        else
+        {
+            teams[awayTeam].Points += 3;
+        }
+    }
+    
+    public void PrintStandings()
+    {
+        var sortedTeams = teams.Values.OrderByDescending(t => t.Points)
+            .ThenByDescending(t => t.GoalDifference)
+            .ThenBy(t => t.Name);
+            
+        Console.WriteLine("\nTournament Standings:");
+        Console.WriteLine("Pos Team\tPts\tGD");
+        int position = 1;
+        foreach (var team in sortedTeams)
+        {
+            Console.WriteLine($"{position,-3} {team.Name,-10}\t{team.Points}\t{team.GoalDifference:+0;-0}");
+            position++;
+        }
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        var tournament = new Tournament();
+        
+        Console.WriteLine("Enter match results (format: HomeTeam HomeScore-AwayScore AwayTeam)");
+        Console.WriteLine("Enter 'done' when finished");
+        
+        while (true)
+        {
+            Console.Write("Match result: ");
+            string input = Console.ReadLine();
+            
+            if (input.ToLower() == "done") break;
+            
+            try
+            {
+                var parts = input.Split(' ');
+                if (parts.Length != 3) throw new FormatException();
+                
+                string homeTeam = parts[0];
+                var scoreParts = parts[1].Split('-');
+                if (scoreParts.Length != 2) throw new FormatException();
+                
+                int homeScore = int.Parse(scoreParts[0]);
+                int awayScore = int.Parse(scoreParts[1]);
+                string awayTeam = parts[2];
+                
+                tournament.AddMatch(homeTeam, homeScore, awayTeam, awayScore);
+            }
+            catch
+            {
+                Console.WriteLine("Invalid format. Example: TeamA 2-1 TeamB");
+            }
+        }
+        
+        tournament.PrintStandings();
+    }
+}
