@@ -1,0 +1,176 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+class MenuItem
+{
+    public string Name { get; set; }
+    public decimal Price { get; set; }
+}
+
+class Diner
+{
+    public string Name { get; set; }
+    public List<MenuItem> Items { get; set; } = new List<MenuItem>();
+    public decimal TipPercentage { get; set; }
+    public decimal SharedItemsContribution { get; set; }
+}
+
+class Program
+{
+    static void Main()
+    {
+        Console.WriteLine("RESTAURANT ORDER SPLITTER");
+        Console.WriteLine("-------------------------");
+
+        // Input menu items
+        List<MenuItem> menu = new List<MenuItem>();
+        int itemCount = GetPositiveInteger("\nEnter number of menu items: ");
+        
+        for (int i = 0; i < itemCount; i++)
+        {
+            Console.WriteLine($"\nMenu Item #{i + 1}");
+            menu.Add(new MenuItem
+            {
+                Name = GetInput("Item name: "),
+                Price = GetPositiveDecimal("Item price: ")
+            });
+        }
+
+        // Input diners
+        List<Diner> diners = new List<Diner>();
+        int dinerCount = GetPositiveInteger("\nEnter number of diners: ");
+        
+        for (int i = 0; i < dinerCount; i++)
+        {
+            Console.WriteLine($"\nDiner #{i + 1}");
+            var diner = new Diner
+            {
+                Name = GetInput("Diner name: "),
+                TipPercentage = GetPercentage("Tip percentage (e.g., 15 for 15%): ")
+            };
+
+            // Assign items to diner
+            Console.WriteLine("\nAssign items to this diner (enter item numbers, comma separated):");
+            DisplayMenu(menu);
+            
+            string[] selectedItems = GetInput("Selected items: ").Split(',');
+            foreach (string itemNum in selectedItems)
+            {
+                if (int.TryParse(itemNum.Trim(), out int index) && index > 0 && index <= menu.Count)
+                {
+                    diner.Items.Add(menu[index - 1]);
+                }
+            }
+            
+            diners.Add(diner);
+        }
+
+        // Handle shared items
+        Console.WriteLine("\nSHARED ITEMS");
+        Console.WriteLine("-----------");
+        DisplayMenu(menu);
+        string[] sharedItems = GetInput("Enter shared item numbers (comma separated): ").Split(',');
+        
+        List<MenuItem> sharedItemsList = new List<MenuItem>();
+        foreach (string itemNum in sharedItems)
+        {
+            if (int.TryParse(itemNum.Trim(), out int index) && index > 0 && index <= menu.Count)
+            {
+                sharedItemsList.Add(menu[index - 1]);
+            }
+        }
+
+        // Calculate service charge
+        decimal serviceChargePercentage = GetPercentage("\nEnter service charge percentage: ");
+        
+        // Calculate totals
+        decimal subtotal = diners.Sum(d => d.Items.Sum(i => i.Price)) + sharedItemsList.Sum(i => i.Price);
+        decimal serviceCharge = subtotal * serviceChargePercentage / 100;
+        decimal total = subtotal + serviceCharge;
+
+        // Split shared items equally
+        decimal sharedPerDiner = sharedItemsList.Sum(i => i.Price) / diners.Count;
+        foreach (var diner in diners)
+        {
+            diner.SharedItemsContribution = sharedPerDiner;
+        }
+
+        // Calculate individual bills
+        Console.WriteLine("\nINDIVIDUAL BILLS");
+        Console.WriteLine("----------------");
+        
+        foreach (var diner in diners)
+        {
+            decimal dinerSubtotal = diner.Items.Sum(i => i.Price) + diner.SharedItemsContribution;
+            decimal dinerService = dinerSubtotal / subtotal * serviceCharge;
+            decimal dinerTotalBeforeTip = dinerSubtotal + dinerService;
+            decimal dinerTip = dinerTotalBeforeTip * diner.TipPercentage / 100;
+            decimal dinerTotal = dinerTotalBeforeTip + dinerTip;
+
+            Console.WriteLine($"\n{diner.Name.ToUpper()}");
+            Console.WriteLine($"Personal items: {string.Join(", ", diner.Items.Select(i => i.Name))}");
+            Console.WriteLine($"Shared items contribution: {diner.SharedItemsContribution:C}");
+            Console.WriteLine($"Subtotal: {dinerSubtotal:C}");
+            Console.WriteLine($"Service charge: {dinerService:C}");
+            Console.WriteLine($"Tip ({diner.TipPercentage}%): {dinerTip:C}");
+            Console.WriteLine($"TOTAL: {dinerTotal:C}");
+        }
+
+        // Display summary
+        Console.WriteLine("\nSUMMARY");
+        Console.WriteLine("-------");
+        Console.WriteLine($"Total food/drink: {subtotal:C}");
+        Console.WriteLine($"Service charge ({serviceChargePercentage}%): {serviceCharge:C}");
+        Console.WriteLine($"Total before tips: {total:C}");
+        Console.WriteLine($"Total including tips: {total + diners.Sum(d => d.TipPercentage / 100 * (d.Items.Sum(i => i.Price) + d.SharedItemsContribution + (d.Items.Sum(i => i.Price) + d.SharedItemsContribution) / subtotal * serviceCharge)):C}");
+    }
+
+    static void DisplayMenu(List<MenuItem> menu)
+    {
+        Console.WriteLine("\nMENU ITEMS:");
+        for (int i = 0; i < menu.Count; i++)
+        {
+            Console.WriteLine($"{i + 1}. {menu[i].Name} - {menu[i].Price:C}");
+        }
+    }
+
+    static string GetInput(string prompt)
+    {
+        Console.Write(prompt);
+        return Console.ReadLine().Trim();
+    }
+
+    static int GetPositiveInteger(string prompt)
+    {
+        while (true)
+        {
+            Console.Write(prompt);
+            if (int.TryParse(Console.ReadLine(), out int result) && result > 0)
+                return result;
+            Console.WriteLine("Please enter a positive whole number.");
+        }
+    }
+
+    static decimal GetPositiveDecimal(string prompt)
+    {
+        while (true)
+        {
+            Console.Write(prompt);
+            if (decimal.TryParse(Console.ReadLine(), out decimal result) && result > 0)
+                return result;
+            Console.WriteLine("Please enter a positive amount.");
+        }
+    }
+
+    static decimal GetPercentage(string prompt)
+    {
+        while (true)
+        {
+            Console.Write(prompt);
+            if (decimal.TryParse(Console.ReadLine(), out decimal result) && result >= 0)
+                return result;
+            Console.WriteLine("Please enter a valid percentage (0 or higher).");
+        }
+    }
+}
