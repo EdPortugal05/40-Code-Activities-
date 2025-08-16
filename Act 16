@@ -1,0 +1,98 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+class Movie
+{
+    public string Title { get; set; }
+    public string Rating { get; set; }
+    public int Duration { get; set; }
+    public List<string> Tags { get; set; } = new List<string>();
+    public double Score { get; set; }
+
+    public bool MatchesPreferences(int maxDuration, HashSet<string> allowedRatings, string mood)
+    {
+        return Duration <= maxDuration && 
+               allowedRatings.Contains(Rating) && 
+               Tags.Contains(mood);
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        Console.WriteLine("MOVIE RECOMMENDER SYSTEM");
+        
+        // Load movie catalog
+        List<Movie> catalog = new List<Movie>();
+        Console.Write("Number of movies in catalog: ");
+        int movieCount = int.Parse(Console.ReadLine());
+
+        for (int i = 0; i < movieCount; i++)
+        {
+            Console.WriteLine($"\nMovie #{i + 1}");
+            var movie = new Movie();
+            
+            Console.Write("Title: ");
+            movie.Title = Console.ReadLine();
+            
+            Console.Write("Rating (G, PG, PG-13, R): ");
+            movie.Rating = Console.ReadLine().ToUpper();
+            
+            Console.Write("Duration (minutes): ");
+            movie.Duration = int.Parse(Console.ReadLine());
+            
+            Console.Write("Tags (comma separated): ");
+            movie.Tags = Console.ReadLine().Split(',')
+                .Select(t => t.Trim().ToLower()).ToList();
+            
+            catalog.Add(movie);
+        }
+
+        // Get user preferences
+        Console.WriteLine("\nENTER YOUR PREFERENCES");
+        int maxDuration = GetPositiveInteger("Maximum duration (minutes): ");
+        
+        Console.Write("Allowed ratings (comma separated): ");
+        var allowedRatings = new HashSet<string>(
+            Console.ReadLine().ToUpper().Split(',').Select(r => r.Trim()));
+        
+        Console.Write("Mood: ");
+        string mood = Console.ReadLine().ToLower();
+
+        // Score and recommend movies
+        var recommendations = catalog
+            .Where(m => m.MatchesPreferences(maxDuration, allowedRatings, mood))
+            .OrderByDescending(m => m.Rating == "G" ? 4 : 
+                                   m.Rating == "PG" ? 3 : 
+                                   m.Rating == "PG-13" ? 2 : 1)
+            .ThenBy(m => m.Duration)
+            .ToList();
+
+        // Display results
+        Console.WriteLine("\nRECOMMENDED MOVIES");
+        if (recommendations.Count == 0)
+        {
+            Console.WriteLine("No movies match your preferences.");
+            return;
+        }
+
+        foreach (var movie in recommendations)
+        {
+            Console.WriteLine($"\n{movie.Title} ({movie.Rating}, {movie.Duration} mins)");
+            Console.WriteLine($"Tags: {string.Join(", ", movie.Tags)}");
+        }
+    }
+
+    static int GetPositiveInteger(string prompt)
+    {
+        while (true)
+        {
+            Console.Write(prompt);
+            if (int.TryParse(Console.ReadLine(), out int result) && result > 0)
+                return result;
+            Console.WriteLine("Please enter a positive integer.");
+        }
+    }
+}
